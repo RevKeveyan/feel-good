@@ -1,0 +1,4 @@
+appId: com.feelgoodsociety.challenge
+---
+- launchApp
+- assertVisible: "Welcome back"

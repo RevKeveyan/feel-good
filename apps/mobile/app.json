@@ -1,0 +1,74 @@
+{
+  "expo": {
+    "name": "Feel Good Challenge",
+    "slug": "feel-good-challenge",
+    "scheme": "feelgood",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#EBE5DD"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.feelgoodsociety.challenge",
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Upload weekly progress photos and vision board images.",
+        "NSPhotoLibraryUsageDescription": "Choose photos for your vision board and weekly progress."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#EBE5DD"
+      },
+      "package": "com.feelgoodsociety.challenge",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose photos for your vision board and weekly progress.",
+          "cameraPermission": "Upload weekly progress photos and vision board images."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#222222"
+        }
+      ],
+      "expo-apple-authentication",
+      "expo-font"
+    ],
+    "privacyManifests": {
+      "NSPrivacyAccessedAPITypes": [
+        {
+          "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+          "NSPrivacyAccessedAPITypeReasons": [
+            "CA92.1"
+          ]
+        }
+      ]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      },
+      "legalPrivacyUrl": "https://thefeelgoodsociety.com.au/privacy",
+      "legalTermsUrl": "https://thefeelgoodsociety.com.au/terms"
+    }
+  }
+}

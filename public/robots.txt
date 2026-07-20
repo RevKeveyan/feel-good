@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /auth
+Disallow: /today
+Disallow: /onboarding
+Disallow: /complete
+Disallow: /preview
+Disallow: /admin
+Disallow: /test-checklist

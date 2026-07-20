@@ -1,0 +1,5 @@
+appId: com.feelgoodsociety.challenge
+---
+- launchApp
+- tapOn: "Sign in"
+- assertVisible: "Today"

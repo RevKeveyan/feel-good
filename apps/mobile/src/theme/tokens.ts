@@ -1,0 +1,43 @@
+export const colors = {
+  background: "#EBE5DD",
+  foreground: "#222222",
+  card: "#F8EFEE",
+  cardForeground: "#222222",
+  primary: "#222222",
+  primaryForeground: "#F8EFEE",
+  secondary: "#F2BDC2",
+  secondaryForeground: "#222222",
+  muted: "#F8EFEE",
+  mutedForeground: "#6B6560",
+  accent: "#E1C340",
+  accentForeground: "#222222",
+  destructive: "#DD9B9B",
+  destructiveForeground: "#222222",
+  lime: "#CCDA18",
+  limeForeground: "#222222",
+  white: "#FFFFFF",
+  black: "#222222",
+  border: "rgba(34,34,34,0.1)",
+  input: "rgba(34,34,34,0.14)",
+  overlay: "rgba(0,0,0,0.4)",
+} as const;
+
+export const radius = {
+  sm: 12,
+  md: 14,
+  lg: 16,
+  xl: 20,
+  "2xl": 24,
+  "3xl": 28,
+  full: 999,
+} as const;
+
+export const space = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  "2xl": 32,
+  screenX: 24,
+} as const;

@@ -1,0 +1,16 @@
+project_id = "tblafyztaidgwbrabajw"
+
+[api]
+enabled = true
+
+[db]
+major_version = 15
+
+[functions.submit-testimonial]
+verify_jwt = true
+
+[functions.register-device]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
