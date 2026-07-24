@@ -88,5 +88,7 @@ npx eas-cli build -p android --profile preview
 
 ## Один следующий шаг
 
-**Сегодня:** включить Custom SMTP в Supabase (шаг 1 выше).  
-Потом: новая Android preview-сборка → тест на телефоне → Play Internal.
+**Сейчас:** починить SMTP в Dashboard (Username = Gmail email, Host = `smtp.gmail.com` без точки) → Forgot password.  
+APK уже готов: https://expo.dev/accounts/galaxy15478/projects/feel-good-challenge/builds/10b833d0-8dca-4ae4-bc45-8238c4874331  
+Потом: QA на телефоне → Play Internal.  
+Статус: [`PREPUBLISH_STATUS.md`](PREPUBLISH_STATUS.md).

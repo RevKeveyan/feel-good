@@ -1,6 +1,11 @@
 import { isRunningInExpoGo } from "expo";
-import { Platform } from "react-native";
+import { LogBox, Platform } from "react-native";
 import { supabase } from "./supabase";
+
+LogBox.ignoreLogs([
+  "expo-notifications: Android Push notifications",
+  "expo-notifications: Android Push notifications (remote notifications) functionality provided by expo-notifications was removed from Expo Go",
+]);
 
 type NotificationsModule = typeof import("expo-notifications");
 
@@ -38,12 +43,12 @@ export async function ensureNotificationPermissions(): Promise<boolean> {
 }
 
 export async function registerForPushNotifications(): Promise<string | null> {
-  const allowed = await ensureNotificationPermissions();
-  if (!allowed) return null;
-
   if (isRunningInExpoGo()) {
     return null;
   }
+
+  const allowed = await ensureNotificationPermissions();
+  if (!allowed) return null;
 
   const Notifications = await getNotifications();
   const token = (await Notifications.getExpoPushTokenAsync()).data;

@@ -23,7 +23,9 @@ import {
   scheduleTestReminderInOneMinute,
 } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
-import { uploadLocalImage } from "@/lib/upload-image";
+import { resolveAvatarUrl } from "@/lib/avatar";
+import { alertMediaPermissionNeeded } from "@/lib/media-permissions";
+import { guessImageContentType, uploadLocalImage } from "@/lib/upload-image";
 import {
   Body,
   BrandCard,
@@ -62,14 +64,7 @@ export default function SettingsScreen() {
         .toUpperCase(),
     );
 
-    if (row?.avatar_path) {
-      const { data: signed } = await supabase.storage
-        .from("avatars")
-        .createSignedUrl(row.avatar_path, 3600);
-      setAvatarUrl(signed?.signedUrl ?? null);
-    } else {
-      setAvatarUrl(null);
-    }
+    setAvatarUrl(await resolveAvatarUrl({ avatarPath: row?.avatar_path, user: auth.user }));
   }, []);
 
   useEffect(() => {
@@ -151,13 +146,13 @@ export default function SettingsScreen() {
     if (source === "camera") {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert("Permission needed", "Camera access is required for your avatar.");
+        alertMediaPermissionNeeded("Camera access is required for your avatar.");
         return;
       }
     } else {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert("Permission needed", "Photo library access is required for your avatar.");
+        alertMediaPermissionNeeded("Photo library access is required for your avatar.");
         return;
       }
     }
@@ -176,11 +171,12 @@ export default function SettingsScreen() {
     setUploading(true);
     try {
       const path = `${auth.user.id}/avatar.jpg`;
+      const uri = result.assets[0].uri;
       await uploadLocalImage({
         bucket: "avatars",
         path,
-        uri: result.assets[0].uri,
-        contentType: "image/jpeg",
+        uri,
+        contentType: guessImageContentType(uri),
         upsert: true,
       });
 
@@ -191,8 +187,7 @@ export default function SettingsScreen() {
       if (error) throw error;
 
       setProfile((prev) => (prev ? { ...prev, avatar_path: path } : prev));
-      const { data: signed } = await supabase.storage.from("avatars").createSignedUrl(path, 3600);
-      setAvatarUrl(signed?.signedUrl ?? null);
+      setAvatarUrl(await resolveAvatarUrl({ avatarPath: path, user: auth.user }));
       Alert.alert("Saved", "Profile photo updated.");
     } catch (e) {
       Alert.alert("Upload failed", e instanceof Error ? e.message : "Something went wrong");
@@ -230,7 +225,11 @@ export default function SettingsScreen() {
               <Label style={styles.rowTitle}>
                 {profile?.display_name?.trim() || "Your profile"}
               </Label>
-              <Body>Upload or take a photo for your avatar</Body>
+              <Body>
+                {avatarUrl
+                  ? "Change photo to replace your current avatar"
+                  : "Upload a photo, or keep your Google picture if you signed in with Google"}
+              </Body>
             </View>
           </View>
           <OutlineButton

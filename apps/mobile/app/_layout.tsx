@@ -1,7 +1,7 @@
 import { Stack, router } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, LogBox, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import * as Linking from "expo-linking";
@@ -27,6 +27,11 @@ import { initAnalytics } from "@/lib/analytics";
 import { completeSessionFromUrl, parseAuthCallbackUrl } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { colors } from "@/src/theme";
+
+LogBox.ignoreLogs([
+  "expo-notifications: Android Push notifications",
+  /expo-notifications:.*Expo Go/,
+]);
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 

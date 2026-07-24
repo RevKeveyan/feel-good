@@ -35,8 +35,10 @@ import {
   quoteForDate,
 } from "@feelgood/shared";
 import { supabase } from "@/lib/supabase";
+import { resolveAvatarUrl } from "@/lib/avatar";
+import { alertMediaPermissionNeeded } from "@/lib/media-permissions";
 import { enqueueUpsert, flushOfflineQueue } from "@/lib/offline-queue";
-import { uploadLocalImage } from "@/lib/upload-image";
+import { cacheBustUrl, guessImageContentType, uploadLocalImage } from "@/lib/upload-image";
 import { StruggleSheet } from "@/components/StruggleSheet";
 import {
   Body,
@@ -115,14 +117,9 @@ export default function TodayScreen() {
         .toUpperCase(),
     );
 
-    if (profileRow?.avatar_path) {
-      const { data: signedAvatar } = await supabase.storage
-        .from("avatars")
-        .createSignedUrl(profileRow.avatar_path, 3600);
-      setAvatarUrl(signedAvatar?.signedUrl ?? null);
-    } else {
-      setAvatarUrl(null);
-    }
+    setAvatarUrl(
+      await resolveAvatarUrl({ avatarPath: profileRow?.avatar_path, user: auth.user }),
+    );
 
     const rows = (entries ?? []) as DailyEntry[];
     setAllEntries(rows);
@@ -141,7 +138,7 @@ export default function TodayScreen() {
         const { data: signed } = await supabase.storage
           .from("weekly-photos")
           .createSignedUrl(photo.storage_path, 3600);
-        setPhotoUrl(signed?.signedUrl ?? null);
+        setPhotoUrl(cacheBustUrl(signed?.signedUrl) ?? null);
       } else {
         setPhotoStoragePath(null);
         setPhotoUrl(null);
@@ -216,32 +213,37 @@ export default function TodayScreen() {
     if (source === "camera") {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert("Permission needed", "Camera access is required for weekly photos.");
+        alertMediaPermissionNeeded("Camera access is required for weekly photos.");
         return;
       }
     } else {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert("Permission needed", "Photo library access is required for weekly photos.");
+        alertMediaPermissionNeeded("Photo library access is required for weekly photos.");
         return;
       }
     }
 
     const result =
       source === "camera"
-        ? await ImagePicker.launchCameraAsync({ quality: 0.8 })
-        : await ImagePicker.launchImageLibraryAsync({ quality: 0.8, mediaTypes: ImagePicker.MediaTypeOptions.Images });
+        ? await ImagePicker.launchCameraAsync({ quality: 0.8, allowsEditing: true })
+        : await ImagePicker.launchImageLibraryAsync({
+            quality: 0.8,
+            allowsEditing: true,
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          });
     if (result.canceled || !result.assets[0]) return;
 
     setUploadingPhoto(true);
     try {
       const weekNum = currentWeek(profile.challenge_start_date);
       const path = `${auth.user.id}/week-${weekNum}-${Date.now()}.jpg`;
+      const uri = result.assets[0].uri;
       await uploadLocalImage({
         bucket: "weekly-photos",
         path,
-        uri: result.assets[0].uri,
-        contentType: "image/jpeg",
+        uri,
+        contentType: guessImageContentType(uri),
         upsert: true,
       });
 
@@ -249,14 +251,15 @@ export default function TodayScreen() {
         await supabase.storage.from("weekly-photos").remove([photoStoragePath]);
       }
 
-      await supabase.from("weekly_photos").upsert(
+      const { error } = await supabase.from("weekly_photos").upsert(
         { user_id: auth.user.id, week_number: weekNum, storage_path: path },
         { onConflict: "user_id,week_number" },
       );
+      if (error) throw error;
 
       setPhotoStoragePath(path);
       const { data: signed } = await supabase.storage.from("weekly-photos").createSignedUrl(path, 3600);
-      setPhotoUrl(signed?.signedUrl ?? null);
+      setPhotoUrl(cacheBustUrl(signed?.signedUrl) ?? null);
       Alert.alert("Saved", `Week ${weekNum} photo saved`);
     } catch (e) {
       Alert.alert("Upload failed", e instanceof Error ? e.message : "Something went wrong");

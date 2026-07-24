@@ -24,7 +24,8 @@ import {
   type WheelScores,
 } from "@feelgood/shared";
 import { supabase } from "@/lib/supabase";
-import { uploadLocalImage } from "@/lib/upload-image";
+import { alertMediaPermissionNeeded } from "@/lib/media-permissions";
+import { cacheBustUrl, guessImageContentType, uploadLocalImage } from "@/lib/upload-image";
 import {
   GradientArea,
   PromptField,
@@ -117,7 +118,11 @@ export default function OnboardingScreen() {
         .from("vision-board")
         .createSignedUrl(row.storage_path, 3600);
       if (signed?.signedUrl) {
-        items.push({ id: row.id, storage_path: row.storage_path, url: signed.signedUrl });
+        items.push({
+          id: row.id,
+          storage_path: row.storage_path,
+          url: cacheBustUrl(signed.signedUrl) ?? signed.signedUrl,
+        });
       }
     }
     setVisionItems(items);
@@ -174,36 +179,83 @@ export default function OnboardingScreen() {
     void saveResponses({ goals: nextGoals });
   }
 
+  async function pickVisionLibraryUri() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      alertMediaPermissionNeeded("Photo library access is required for your vision board.");
+      return null;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      quality: 0.8,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    });
+    if (result.canceled || !result.assets[0]) return null;
+    return result.assets[0].uri;
+  }
+
   async function uploadVisionImage() {
     if (!uid || visionUploading) return;
     if (visionItems.length >= 8) {
       Alert.alert("Limit reached", "You can add up to 8 vision board images.");
       return;
     }
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert("Permission needed", "Photo library access is required for your vision board.");
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.8 });
-    if (result.canceled || !result.assets[0]) return;
+    const uri = await pickVisionLibraryUri();
+    if (!uri) return;
     const path = `${uid}/${Date.now()}.jpg`;
     setVisionUploading(true);
     try {
       await uploadLocalImage({
         bucket: "vision-board",
         path,
-        uri: result.assets[0].uri,
-        contentType: "image/jpeg",
+        uri,
+        contentType: guessImageContentType(uri),
       });
+      const { error } = await supabase
+        .from("vision_board_items")
+        .insert({ user_id: uid, storage_path: path, sort_order: Date.now() });
+      if (error) {
+        await supabase.storage.from("vision-board").remove([path]);
+        throw error;
+      }
+      await loadVision(uid);
     } catch (e) {
       Alert.alert("Upload failed", e instanceof Error ? e.message : "Something went wrong");
-      return;
     } finally {
       setVisionUploading(false);
     }
-    await supabase.from("vision_board_items").insert({ user_id: uid, storage_path: path, sort_order: Date.now() });
-    await loadVision(uid);
+  }
+
+  async function replaceVisionItem(item: VisionItem) {
+    if (!uid || visionUploading) return;
+    const uri = await pickVisionLibraryUri();
+    if (!uri) return;
+    const path = `${uid}/${Date.now()}.jpg`;
+    setVisionUploading(true);
+    try {
+      await uploadLocalImage({
+        bucket: "vision-board",
+        path,
+        uri,
+        contentType: guessImageContentType(uri),
+      });
+      const { error } = await supabase
+        .from("vision_board_items")
+        .update({ storage_path: path })
+        .eq("id", item.id)
+        .eq("user_id", uid);
+      if (error) {
+        await supabase.storage.from("vision-board").remove([path]);
+        throw error;
+      }
+      if (item.storage_path !== path) {
+        await supabase.storage.from("vision-board").remove([item.storage_path]);
+      }
+      await loadVision(uid);
+    } catch (e) {
+      Alert.alert("Replace failed", e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setVisionUploading(false);
+    }
   }
 
   async function removeVisionItem(item: VisionItem) {
@@ -475,7 +527,13 @@ export default function OnboardingScreen() {
                     { borderColor: visionRingColors[i % visionRingColors.length] },
                   ]}
                 >
-                  <Image source={{ uri: item.url }} style={styles.visionImage} />
+                  <Pressable
+                    style={StyleSheet.absoluteFill}
+                    disabled={visionUploading}
+                    onPress={() => void replaceVisionItem(item)}
+                  >
+                    <Image source={{ uri: item.url }} style={styles.visionImage} />
+                  </Pressable>
                   <Pressable style={styles.visionRemove} onPress={() => void removeVisionItem(item)}>
                     <Trash2 size={16} color="#fff" strokeWidth={2} />
                   </Pressable>
@@ -493,7 +551,7 @@ export default function OnboardingScreen() {
               gap={8}
               icon={<Lock size={14} color={colors.mutedForeground} strokeWidth={2} />}
             >
-              <Body>Only you can see these images.</Body>
+              <Body>Only you can see these. Tap a photo to replace it.</Body>
             </IconLabel>
           </View>
         )}
