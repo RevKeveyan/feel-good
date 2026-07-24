@@ -1,3 +1,3 @@
 export { colors, radius, space } from "./tokens";
-export { fonts } from "./typography";
-export { gradients } from "./gradients";
+export { fonts, displaySizes, bodySizes, typographyRoles } from "./typography";
+export { gradients, visionRingColors } from "./gradients";

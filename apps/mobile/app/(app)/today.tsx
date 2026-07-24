@@ -10,9 +10,10 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
+import { Camera, CheckCircle2, Flame, Heart, Lock } from "@/components/ui/icons";
 import {
   CHALLENGE_LENGTH,
   MOVE_TYPES,
@@ -35,7 +36,6 @@ import {
 } from "@feelgood/shared";
 import { supabase } from "@/lib/supabase";
 import { enqueueUpsert, flushOfflineQueue } from "@/lib/offline-queue";
-import { signOut } from "@/lib/auth";
 import { uploadLocalImage } from "@/lib/upload-image";
 import { StruggleSheet } from "@/components/StruggleSheet";
 import {
@@ -44,12 +44,15 @@ import {
   DisplayTitle,
   GradientCard,
   HabitToggle,
+  IconLabel,
   Kicker,
+  Label,
   PillTab,
   PrimaryButton,
   ProgressBar,
   ScoreRing,
   Screen,
+  StatValue,
 } from "@/components/ui";
 import { colors, fonts, gradients, radius, space } from "@/src/theme";
 
@@ -65,9 +68,12 @@ export default function TodayScreen() {
   const [showMindset, setShowMindset] = useState(false);
   const [showStruggle, setShowStruggle] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoStoragePath, setPhotoStoragePath] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [moveMinutes, setMoveMinutes] = useState("30");
   const [tab, setTab] = useState("Today");
   const [initials, setInitials] = useState("FG");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   const today = todayISO();
 
@@ -76,7 +82,10 @@ export default function TodayScreen() {
     await flushOfflineQueue();
     const { data: auth } = await supabase.auth.getUser();
     const uid = auth.user?.id;
-    if (!uid) return;
+    if (!uid) {
+      setLoading(false);
+      return;
+    }
 
     const [{ data: p }, { data: entries }] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
@@ -90,6 +99,7 @@ export default function TodayScreen() {
 
     const profileRow = p as Profile | null;
     if (profileRow && !profileRow.onboarding_completed_at) {
+      setLoading(false);
       router.replace("/(app)/onboarding");
       return;
     }
@@ -104,6 +114,16 @@ export default function TodayScreen() {
         .slice(0, 2)
         .toUpperCase(),
     );
+
+    if (profileRow?.avatar_path) {
+      const { data: signedAvatar } = await supabase.storage
+        .from("avatars")
+        .createSignedUrl(profileRow.avatar_path, 3600);
+      setAvatarUrl(signedAvatar?.signedUrl ?? null);
+    } else {
+      setAvatarUrl(null);
+    }
+
     const rows = (entries ?? []) as DailyEntry[];
     setAllEntries(rows);
     setEntry(rows.find((r) => r.entry_date === today) ?? null);
@@ -117,20 +137,24 @@ export default function TodayScreen() {
         .eq("week_number", week)
         .maybeSingle();
       if (photo?.storage_path) {
+        setPhotoStoragePath(photo.storage_path);
         const { data: signed } = await supabase.storage
           .from("weekly-photos")
           .createSignedUrl(photo.storage_path, 3600);
         setPhotoUrl(signed?.signedUrl ?? null);
       } else {
+        setPhotoStoragePath(null);
         setPhotoUrl(null);
       }
     }
     setLoading(false);
   }, [today]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   useEffect(() => {
     if (tab === "Mindset") {
@@ -221,24 +245,24 @@ export default function TodayScreen() {
         upsert: true,
       });
 
+      if (photoStoragePath && photoStoragePath !== path) {
+        await supabase.storage.from("weekly-photos").remove([photoStoragePath]);
+      }
+
       await supabase.from("weekly_photos").upsert(
         { user_id: auth.user.id, week_number: weekNum, storage_path: path },
         { onConflict: "user_id,week_number" },
       );
 
+      setPhotoStoragePath(path);
       const { data: signed } = await supabase.storage.from("weekly-photos").createSignedUrl(path, 3600);
       setPhotoUrl(signed?.signedUrl ?? null);
-      Alert.alert("Saved", `Week ${weekNum} photo uploaded.`);
+      Alert.alert("Saved", `Week ${weekNum} photo saved`);
     } catch (e) {
       Alert.alert("Upload failed", e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setUploadingPhoto(false);
     }
-  }
-
-  async function handleSignOut() {
-    await signOut();
-    router.replace("/auth");
   }
 
   const target = profile?.water_target_ml ?? 2500;
@@ -278,49 +302,104 @@ export default function TodayScreen() {
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
               <Kicker>{formatDate(today)}</Kicker>
-              <DisplayTitle style={styles.dayTitle}>
-                Day {day} <Text style={styles.dayMuted}>of {CHALLENGE_LENGTH}</Text>
-              </DisplayTitle>
+              <View style={styles.dayRow}>
+                <DisplayTitle style={styles.dayTitle}>Day {day}</DisplayTitle>
+                <Body size="sm" style={styles.dayMuted}>
+                  of {CHALLENGE_LENGTH}
+                </Body>
+              </View>
             </View>
-            <Pressable style={styles.avatar} onPress={handleSignOut} onLongPress={() => router.push("/(app)/settings")}>
-              <Text style={styles.avatarText}>{initials}</Text>
+            <Pressable style={styles.avatar} onPress={() => router.push("/(app)/settings")}>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.avatarText}>{initials}</Text>
+              )}
             </Pressable>
           </View>
 
           {day >= CHALLENGE_LENGTH && (
             <Pressable style={styles.revealCta} onPress={() => router.push("/(app)/complete")}>
-              <Kicker style={{ color: colors.primaryForeground }}>Day 55</Kicker>
-              <Text style={styles.revealTitle}>Reveal your transformation</Text>
+              <Kicker style={{ color: colors.primaryForeground }}>Day 55 · Unlocked</Kicker>
+              <DisplayTitle size="sm" style={styles.revealTitle}>
+                Reveal your transformation
+              </DisplayTitle>
             </Pressable>
           )}
 
           {missedYest && (
             <BrandCard style={styles.banner}>
-              <Text style={styles.bannerTitle}>You missed yesterday.</Text>
-              <Body>Your streak is paused. Complete today to continue.</Body>
+              <IconLabel
+                icon={<Heart size={16} color={colors.accent} strokeWidth={2} />}
+                style={styles.bannerRow}
+                gap={10}
+              >
+                <View style={{ flex: 1 }}>
+                  <Label style={styles.bannerTitle}>You missed yesterday.</Label>
+                  <Body>Your streak is paused, not lost. Complete today&apos;s challenge to continue your transformation.</Body>
+                </View>
+              </IconLabel>
             </BrandCard>
           )}
 
           <GradientCard colorsStops={gradients.quote} orb style={{ marginBottom: space.lg }}>
-            <Kicker>Today&apos;s reminder</Kicker>
-            <Text style={styles.quoteText}>&ldquo;{quote.text}&rdquo;</Text>
+            <View style={styles.quoteContent}>
+              <Kicker>Today&apos;s reminder</Kicker>
+              <DisplayTitle size="sm" style={styles.quoteText}>
+                &ldquo;{quote.text}&rdquo;
+              </DisplayTitle>
+              {quote.author ? (
+                <Body size="sm" style={styles.quoteAuthor}>- {quote.author}</Body>
+              ) : null}
+            </View>
           </GradientCard>
 
           <PillTab tabs={["Today", "Mindset"]} active={tab} onChange={setTab} />
 
           <View style={styles.statsRow}>
-            <GradientCard colorsStops={gradients.streak} style={styles.statCard}>
-              <Kicker>Streak</Kicker>
-              <Text style={styles.statValue}>{streak}</Text>
+            <GradientCard
+              colorsStops={gradients.streak}
+              style={[styles.statCard, styles.statCardStreak]}
+            >
+              <IconLabel icon={<Flame size={14} color={colors.destructive} strokeWidth={2} />} gap={6}>
+                <Kicker>Streak</Kicker>
+              </IconLabel>
+              <View style={styles.statValueRow}>
+                <StatValue size="lg" style={styles.statValue}>
+                  {streak}
+                </StatValue>
+                <Body size="sm" style={styles.statUnit}>
+                  {streak === 1 ? "day" : "days"}
+                </Body>
+              </View>
+              <Body style={{ marginTop: 4 }}>
+                {streak === 0 ? "Complete today to start" : "Keep it going"}
+              </Body>
             </GradientCard>
-            <GradientCard colorsStops={gradients.journey} style={styles.statCard}>
+            <GradientCard
+              colorsStops={gradients.journey}
+              style={[styles.statCard, styles.statCardJourney]}
+            >
               <Kicker>Journey</Kicker>
-              <Text style={styles.statValue}>{journeyPct}%</Text>
+              <View style={styles.statValueRow}>
+                <StatValue size="lg" style={styles.statValue}>
+                  {journeyPct}
+                </StatValue>
+                <Body size="sm" style={styles.statUnit}>
+                  %
+                </Body>
+              </View>
               <ProgressBar progress={journeyPct} />
+              <Body style={{ marginTop: 4 }}>
+                {completedDaysCount(allEntries)} of {CHALLENGE_LENGTH} days complete
+              </Body>
             </GradientCard>
           </View>
 
-          <GradientCard colorsStops={gradients.score} style={{ marginBottom: space.xl }}>
+          <GradientCard colorsStops={gradients.score} style={styles.scoreCard} orb>
+            <DisplayTitle size="xl" style={styles.scoreWatermark}>
+              55
+            </DisplayTitle>
             <ScoreRing
               score={score}
               habits={habits}
@@ -329,18 +408,24 @@ export default function TodayScreen() {
             />
           </GradientCard>
 
-          <DisplayTitle style={styles.sectionTitle}>The Feel Good Five</DisplayTitle>
-          <Body style={{ marginBottom: space.md }}>{habits} of 5 done</Body>
+          <View style={styles.sectionHeader}>
+            <DisplayTitle size="sm" style={styles.sectionTitle}>The Feel Good Five</DisplayTitle>
+            <Kicker>{habits} of 5 done</Kicker>
+          </View>
 
           <HabitToggle
             title="Nourish"
             done={!!entry?.nourish}
+            subtitle={entry?.nourish ? "Personalised plan followed" : "Follow your nutrition plan"}
             onPress={() => upsertEntry({ nourish: !entry?.nourish })}
+            points={16}
           />
           <HabitToggle
             title="Fuel"
             done={!!entry?.fuel}
+            subtitle={entry?.fuel ? "Pods & powders taken" : "Take your pods & powders"}
             onPress={() => upsertEntry({ fuel: !entry?.fuel })}
+            points={16}
           />
           <HabitToggle
             title="Move"
@@ -348,15 +433,20 @@ export default function TodayScreen() {
             subtitle={
               entry?.move_done && entry.move_type
                 ? `${entry.move_type} · ${entry.move_minutes ?? 0}m`
-                : "Log movement"
+                : "Move for 30 mins + 5,000 steps"
             }
-            onPress={() => setShowMove(true)}
+            onPress={() => {
+              setMoveMinutes(String(entry?.move_minutes ?? 30));
+              setShowMove(true);
+            }}
+            points={16}
           />
           <HabitToggle
             title="Mindset"
             done={!!entry?.mindset}
-            subtitle={entry?.mindset_type ?? "Log mindset practice"}
+            subtitle={entry?.mindset_type ?? "5-10 mins of mindset practice"}
             onPress={() => setShowMindset(true)}
+            points={16}
           />
 
           <BrandCard style={{ marginBottom: space.sm, padding: 16 }}>
@@ -365,10 +455,10 @@ export default function TodayScreen() {
                 <View style={styles.hydrateDotInner} />
               </View>
               <View style={styles.hydrateCopy}>
-                <Text style={styles.habitTitle}>Hydrate</Text>
-                <Text style={styles.habitSub}>
+                <Label style={styles.habitTitle}>Hydrate</Label>
+                <Body size="sm" style={styles.habitSub}>
                   {waterLiters}L of {target / 1000}L
-                </Text>
+                </Body>
               </View>
               <View style={styles.waterRow}>
                 <Pressable
@@ -395,14 +485,11 @@ export default function TodayScreen() {
             onPress={() => setShowCheckIn(true)}
           >
             <View style={styles.checkInKickerRow}>
-              <Text
-                style={[
-                  styles.checkInLock,
-                  checkInDone && { color: colors.foreground },
-                ]}
-              >
-                {checkInDone ? "✓" : "🔒"}
-              </Text>
+              {checkInDone ? (
+                <CheckCircle2 size={14} color={colors.primary} strokeWidth={2} />
+              ) : (
+                <Lock size={14} color="rgba(248,239,238,0.8)" strokeWidth={2} />
+              )}
               <Kicker
                 style={{
                   color: checkInDone ? colors.mutedForeground : "rgba(248,239,238,0.8)",
@@ -411,13 +498,20 @@ export default function TodayScreen() {
                 {checkInDone ? "Daily check-in complete" : "Required to complete today"}
               </Kicker>
             </View>
-            <Text style={[styles.checkInTitle, checkInDone && { color: colors.foreground }]}>
+            <DisplayTitle
+              size="sm"
+              inverted={!checkInDone}
+              style={[styles.checkInTitle, checkInDone && { color: colors.foreground }]}
+            >
               {checkInDone ? "Update today's reflection" : "How are you today?"}
-            </Text>
-            <Text style={[styles.checkInSub, checkInDone && { color: colors.mutedForeground }]}>
+            </DisplayTitle>
+            <Body
+              inverted={!checkInDone}
+              style={[styles.checkInSub, checkInDone && { color: colors.mutedForeground }]}
+            >
               Energy, mood, stress, motivation, the daily check-in is what marks Day {day} as
               complete and keeps your streak alive.
-            </Text>
+            </Body>
             <View style={styles.checkInOrb} />
           </Pressable>
 
@@ -425,26 +519,26 @@ export default function TodayScreen() {
             <View style={styles.photoHeader}>
               <View style={{ flex: 1 }}>
                 <Kicker>Week {week} of 8</Kicker>
-                <DisplayTitle style={{ fontSize: 22, marginTop: 4 }}>
+                <DisplayTitle size="sm" style={{ marginTop: 4 }}>
                   Weekly progress photo
                 </DisplayTitle>
               </View>
-              <Text style={styles.cameraGlyph}>📷</Text>
+              <Camera size={20} color={colors.primary} strokeWidth={2} style={{ marginTop: 4 }} />
             </View>
             {photoUrl ? (
               <View style={styles.photoMediaWrap}>
                 <Image source={{ uri: photoUrl }} style={styles.photoPreview} />
                 <View style={styles.photoBadge}>
-                  <Text style={styles.photoBadgeText}>Week {week}</Text>
+                  <Kicker style={styles.photoBadgeText}>Week {week}</Kicker>
                 </View>
               </View>
             ) : (
               <Pressable style={styles.photoBox} onPress={uploadWeeklyPhoto}>
-                <Text style={styles.cameraGlyphLarge}>📷</Text>
-                <Text style={styles.photoHint}>Add your Week {week} photo</Text>
-                <Text style={styles.photoSub}>
+                <Camera size={32} color={colors.primary + "99"} strokeWidth={2} style={{ marginBottom: 8 }} />
+                <Label style={styles.photoHint}>Add your Week {week} photo</Label>
+                <Body size="sm" style={styles.photoSub}>
                   Same pose, same light. Future you will thank you.
-                </Text>
+                </Body>
               </Pressable>
             )}
             <PrimaryButton
@@ -457,25 +551,34 @@ export default function TodayScreen() {
           </BrandCard>
 
           <Pressable style={styles.linkRow} onPress={() => router.push("/(app)/settings")}>
-            <Text style={styles.linkText}>Settings</Text>
+            <Kicker style={styles.linkText}>Settings</Kicker>
           </Pressable>
 
-          {isDayComplete(entry) && <Text style={styles.completeBadge}>Day complete</Text>}
+          {isDayComplete(entry) && <Label style={styles.completeBadge}>Day complete</Label>}
         </ScrollView>
       </Screen>
 
       <Pressable style={styles.struggleBtn} onPress={() => setShowStruggle(true)}>
-        <Text style={styles.struggleBtnText}>I&apos;m struggling</Text>
+        <Label style={styles.struggleBtnText}>I&apos;m struggling</Label>
       </Pressable>
 
       <StruggleSheet visible={showStruggle} onClose={() => setShowStruggle(false)} />
 
-      <PickerModal
+      <MoveModal
         visible={showMove}
-        title="Log movement"
+        minutes={moveMinutes}
+        onMinutesChange={setMoveMinutes}
         options={MOVE_TYPES}
-        onPick={(type) =>
-          upsertEntry({ move_type: type, move_minutes: 30, move_done: true }).then(() => setShowMove(false))
+        onPick={(type) => {
+          const mins = Math.max(1, parseInt(moveMinutes, 10) || 30);
+          return upsertEntry({ move_type: type, move_minutes: mins, move_done: true }).then(() =>
+            setShowMove(false),
+          );
+        }}
+        onClear={() =>
+          upsertEntry({ move_done: false, move_type: null, move_minutes: null }).then(() =>
+            setShowMove(false),
+          )
         }
         onClose={() => setShowMove(false)}
       />
@@ -485,6 +588,9 @@ export default function TodayScreen() {
         options={MINDSET_TYPES}
         onPick={(type) =>
           upsertEntry({ mindset_type: type, mindset: true }).then(() => setShowMindset(false))
+        }
+        onClear={() =>
+          upsertEntry({ mindset: false, mindset_type: null }).then(() => setShowMindset(false))
         }
         onClose={() => setShowMindset(false)}
       />
@@ -499,31 +605,86 @@ export default function TodayScreen() {
   );
 }
 
+function MoveModal({
+  visible,
+  minutes,
+  onMinutesChange,
+  options,
+  onPick,
+  onClear,
+  onClose,
+}: {
+  visible: boolean;
+  minutes: string;
+  onMinutesChange: (v: string) => void;
+  options: readonly string[];
+  onPick: (v: string) => void;
+  onClear: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={styles.modalOverlay}>
+        <ScrollView contentContainerStyle={styles.modalCard}>
+          <DisplayTitle size="sm" style={{ marginBottom: 16 }}>Log movement</DisplayTitle>
+          <Label style={styles.scaleLabel}>Duration (minutes)</Label>
+          <TextInput
+            style={[styles.notesInput, { minHeight: 48 }]}
+            keyboardType="number-pad"
+            value={minutes}
+            onChangeText={onMinutesChange}
+            placeholder="30"
+            placeholderTextColor={colors.mutedForeground}
+          />
+          {options.map((o) => (
+            <Pressable key={o} style={styles.modalOption} onPress={() => onPick(o)}>
+              <Body style={styles.modalOptionText}>{o}</Body>
+            </Pressable>
+          ))}
+          <Pressable onPress={onClear} style={{ marginTop: 8 }}>
+            <Body style={styles.modalClear}>Clear move</Body>
+          </Pressable>
+          <Pressable onPress={onClose}>
+            <Body style={styles.modalCancel}>Cancel</Body>
+          </Pressable>
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
 function PickerModal({
   visible,
   title,
   options,
   onPick,
+  onClear,
   onClose,
 }: {
   visible: boolean;
   title: string;
   options: readonly string[];
   onPick: (v: string) => void;
+  onClear?: () => void;
   onClose: () => void;
 }) {
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
         <View style={styles.modalCard}>
-          <DisplayTitle style={{ fontSize: 22, marginBottom: 16 }}>{title}</DisplayTitle>
+          <DisplayTitle size="sm" style={{ marginBottom: 16 }}>{title}</DisplayTitle>
           {options.map((o) => (
             <Pressable key={o} style={styles.modalOption} onPress={() => onPick(o)}>
-              <Text style={styles.modalOptionText}>{o}</Text>
+              <Body style={styles.modalOptionText}>{o}</Body>
             </Pressable>
           ))}
+          {onClear ? (
+            <Pressable onPress={onClear} style={{ marginTop: 8 }}>
+              <Body style={styles.modalClear}>Clear</Body>
+            </Pressable>
+          ) : null}
           <Pressable onPress={onClose}>
-            <Text style={styles.modalCancel}>Cancel</Text>
+            <Body style={styles.modalCancel}>Cancel</Body>
           </Pressable>
         </View>
       </View>
@@ -546,6 +707,7 @@ function CheckInModal({
   const [mood, setMood] = useState<number | null>(entry?.mood ?? null);
   const [stress, setStress] = useState<number | null>(entry?.stress ?? null);
   const [motivation, setMotivation] = useState<number | null>(entry?.motivation ?? null);
+  const [sleep, setSleep] = useState<number | null>(entry?.sleep_quality ?? null);
   const [notes, setNotes] = useState(entry?.notes ?? "");
 
   useEffect(() => {
@@ -553,6 +715,7 @@ function CheckInModal({
     setMood(entry?.mood ?? null);
     setStress(entry?.stress ?? null);
     setMotivation(entry?.motivation ?? null);
+    setSleep(entry?.sleep_quality ?? null);
     setNotes(entry?.notes ?? "");
   }, [entry, visible]);
 
@@ -562,21 +725,26 @@ function CheckInModal({
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
         <ScrollView contentContainerStyle={styles.modalCard}>
-          <DisplayTitle style={{ fontSize: 22, marginBottom: 16 }}>Daily check-in</DisplayTitle>
+          <DisplayTitle size="sm" style={{ marginBottom: 8 }}>Daily check-in</DisplayTitle>
+          <Body style={{ marginBottom: 16 }}>
+            Energy, mood, stress and motivation are required to complete the day.
+          </Body>
           <Scale label="Energy" value={energy} onChange={setEnergy} />
           <Scale label="Mood" value={mood} onChange={setMood} />
           <Scale label="Stress" value={stress} onChange={setStress} />
           <Scale label="Motivation" value={motivation} onChange={setMotivation} />
+          <Scale label="Sleep quality (optional)" value={sleep} onChange={setSleep} />
+          <Label style={styles.scaleLabel}>Reflection</Label>
           <TextInput
             style={styles.notesInput}
-            placeholder="Reflection (optional)"
+            placeholder="One thing you noticed today…"
             placeholderTextColor={colors.mutedForeground}
             value={notes}
             onChangeText={setNotes}
             multiline
           />
           <PrimaryButton
-            label="Save check-in"
+            label="Submit now"
             disabled={!ready}
             onPress={() =>
               onSave({
@@ -584,12 +752,13 @@ function CheckInModal({
                 mood,
                 stress,
                 motivation,
+                sleep_quality: sleep,
                 notes: notes || null,
               })
             }
           />
           <Pressable onPress={onClose}>
-            <Text style={styles.modalCancel}>Cancel</Text>
+            <Body style={styles.modalCancel}>Cancel</Body>
           </Pressable>
         </ScrollView>
       </View>
@@ -608,9 +777,9 @@ function Scale({
 }) {
   return (
     <View style={{ marginBottom: 12 }}>
-      <Text style={styles.scaleLabel}>
+      <Label style={styles.scaleLabel}>
         {label} {value ?? "-"}/10
-      </Text>
+      </Label>
       <View style={styles.scaleRow}>
         {Array.from({ length: 10 }).map((_, i) => {
           const n = i + 1;
@@ -631,24 +800,33 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   scroll: { paddingBottom: 120, paddingTop: space.lg },
   header: { flexDirection: "row", alignItems: "flex-start", marginBottom: space.lg },
-  dayTitle: { fontSize: 28, marginTop: 4 },
+  dayRow: { marginTop: 4, flexDirection: "row", alignItems: "flex-end", gap: 8, flexWrap: "wrap" },
+  dayTitle: { fontSize: 28 },
   dayMuted: {
-    fontFamily: fonts.sans,
-    fontSize: 16,
+    fontSize: 14,
     fontStyle: "normal",
+    lineHeight: 18,
+    marginBottom: 3,
     color: colors.mutedForeground,
   },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary + "1A",
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: colors.ringPrimary,
+  },
+  avatarImage: {
+    width: 40,
+    height: 40,
   },
   avatarText: {
     fontFamily: fonts.sansSemi,
-    color: colors.primaryForeground,
+    color: colors.primary,
     fontSize: 13,
   },
   revealCta: {
@@ -658,38 +836,53 @@ const styles = StyleSheet.create({
     marginBottom: space.md,
   },
   revealTitle: {
-    fontFamily: fonts.display,
-    fontStyle: "italic",
-    fontSize: 20,
     color: colors.primaryForeground,
     marginTop: 4,
   },
-  banner: { marginBottom: space.md },
-  bannerTitle: {
-    fontFamily: fonts.sansSemi,
-    color: colors.foreground,
-    marginBottom: 4,
+  banner: { marginBottom: space.md, borderColor: colors.accent + "4D" },
+  bannerRow: { alignItems: "flex-start" },
+  bannerTitle: { marginBottom: 4 },
+  quoteContent: {
+    zIndex: 1,
   },
   quoteText: {
-    fontFamily: fonts.display,
-    fontStyle: "italic",
-    fontSize: 18,
-    color: colors.foreground,
     marginTop: 8,
+    fontSize: 18,
     lineHeight: 26,
+    flexShrink: 1,
+    paddingRight: 24,
+    includeFontPadding: false,
   },
+  quoteAuthor: { marginTop: 8 },
   statsRow: { flexDirection: "row", gap: 10, marginVertical: space.lg },
   statCard: { flex: 1, padding: 16 },
-  statValue: {
-    fontFamily: fonts.display,
-    fontStyle: "italic",
-    fontSize: 28,
-    color: colors.foreground,
-    marginTop: 4,
+  statCardStreak: { borderColor: colors.destructive + "4D" },
+  statCardJourney: { borderColor: colors.lime + "80" },
+  scoreCard: { marginBottom: space.xl, overflow: "hidden" },
+  scoreWatermark: {
+    position: "absolute",
+    top: 8,
+    right: 12,
+    fontSize: 60,
+    opacity: 0.05,
+    zIndex: 0,
   },
-  sectionTitle: { fontSize: 22, marginBottom: 4 },
-  habitTitle: { fontFamily: fonts.sansSemi, color: colors.foreground, fontSize: 14 },
-  habitSub: { fontFamily: fonts.sans, color: colors.mutedForeground, fontSize: 12, marginTop: 2 },
+  statValueRow: { flexDirection: "row", alignItems: "flex-end", gap: 4, marginTop: 4 },
+  statValue: { lineHeight: 30 },
+  statUnit: {
+    fontStyle: "normal",
+    marginBottom: 2,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginBottom: space.md,
+    gap: 12,
+  },
+  sectionTitle: { marginBottom: 0 },
+  habitTitle: { fontSize: 14 },
+  habitSub: { marginTop: 2 },
   hydrateRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 14 },
   hydrateDot: {
     width: 24,
@@ -741,22 +934,15 @@ const styles = StyleSheet.create({
   },
   checkInDone: {
     backgroundColor: colors.card,
-    borderColor: colors.border,
+    borderColor: colors.ringHairline,
   },
   checkInKickerRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
-  checkInLock: { fontSize: 12, color: "rgba(248,239,238,0.8)" },
   checkInTitle: {
-    fontFamily: fonts.display,
-    fontStyle: "italic",
-    fontSize: 24,
-    color: colors.primaryForeground,
     marginTop: 4,
     marginBottom: 8,
   },
   checkInSub: {
-    fontFamily: fonts.sans,
     color: "rgba(248,239,238,0.8)",
-    fontSize: 14,
     lineHeight: 20,
   },
   checkInOrb: {
@@ -770,8 +956,6 @@ const styles = StyleSheet.create({
     opacity: 0.1,
   },
   photoHeader: { flexDirection: "row", alignItems: "flex-start", marginBottom: 16 },
-  cameraGlyph: { fontSize: 20, marginTop: 4 },
-  cameraGlyphLarge: { fontSize: 32, marginBottom: 8, opacity: 0.6 },
   photoMediaWrap: {
     width: "100%",
     alignSelf: "stretch",
@@ -806,34 +990,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  photoBadgeText: {
-    fontFamily: fonts.heading,
-    fontSize: 10,
-    letterSpacing: 2,
-    textTransform: "uppercase",
-    color: colors.white,
-  },
-  photoHint: {
-    fontFamily: fonts.sansSemi,
-    color: colors.foreground,
-    fontSize: 14,
-    textAlign: "center",
-  },
+  photoBadgeText: { color: colors.white },
+  photoHint: { textAlign: "center" },
   photoSub: {
-    fontFamily: fonts.sans,
-    color: colors.mutedForeground,
-    fontSize: 12,
     textAlign: "center",
     marginTop: 6,
     maxWidth: 220,
   },
   linkRow: { paddingVertical: 16, alignItems: "center" },
-  linkText: { fontFamily: fonts.heading, letterSpacing: 2, textTransform: "uppercase", fontSize: 11, color: colors.mutedForeground },
+  linkText: { letterSpacing: 2 },
   completeBadge: {
     textAlign: "center",
     marginTop: 8,
-    fontFamily: fonts.sansSemi,
-    color: colors.foreground,
   },
   struggleBtn: {
     position: "absolute",
@@ -844,9 +1012,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.ringHairline,
   },
-  struggleBtnText: { fontFamily: fonts.sansSemi, fontSize: 12, color: colors.foreground },
+  struggleBtnText: { fontSize: 12 },
   modalOverlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: "flex-end" },
   modalCard: {
     backgroundColor: colors.background,
@@ -860,16 +1028,26 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  modalOptionText: { fontFamily: fonts.sans, color: colors.foreground },
+  modalOptionText: { color: colors.foreground },
   modalCancel: {
     textAlign: "center",
     marginTop: 16,
-    fontFamily: fonts.sans,
-    color: colors.mutedForeground,
   },
-  scaleLabel: { fontFamily: fonts.sansSemi, marginBottom: 6, color: colors.foreground },
+  modalClear: {
+    textAlign: "center",
+    marginTop: 8,
+    color: colors.destructive,
+  },
+  scaleLabel: { marginBottom: 6 },
   scaleRow: { flexDirection: "row", gap: 4 },
-  scaleDot: { flex: 1, height: 28, borderRadius: 6, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
+  scaleDot: {
+    flex: 1,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.ringHairline,
+  },
   scaleDotActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   notesInput: {
     backgroundColor: colors.card,
@@ -880,6 +1058,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     color: colors.foreground,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.ringHairline,
   },
 });

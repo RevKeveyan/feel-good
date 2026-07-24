@@ -26,6 +26,7 @@ export type Profile = {
   water_target_ml: number;
   challenge_start_date: string;
   onboarding_completed_at: string | null;
+  avatar_path: string | null;
 };
 
 export function todayISO(): string {

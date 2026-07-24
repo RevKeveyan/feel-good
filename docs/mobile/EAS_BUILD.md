@@ -1,12 +1,15 @@
-# EAS Build & Submit
+﻿# EAS: сборка и отправка в сторы
 
-## Prerequisites
-1. Expo account: https://expo.dev/signup
-2. Apple Developer Program ($99/year)
-3. Google Play Console ($25)
-4. Supabase OAuth + Edge Functions deployed (see BACKEND_DEPLOY.md)
+> Полная инструкция на русском: [`PUBLISH_RU.md`](PUBLISH_RU.md)
 
-## One-time setup
+## Что нужно заранее
+1. Аккаунт Expo: https://expo.dev/signup  
+2. Apple Developer Program (~$99/год)  
+3. Google Play Console (~$25)  
+4. Supabase: OAuth + Edge Functions (см. [`BACKEND_DEPLOY.md`](BACKEND_DEPLOY.md))  
+5. Custom SMTP для писем Auth (см. [`AUTH_SETUP.md`](AUTH_SETUP.md))
+
+## Первичная настройка
 
 ```powershell
 cd "d:\feel good\apps\mobile"
@@ -15,55 +18,57 @@ eas login
 eas init
 ```
 
-Copy the printed Project ID into `app.json` → `expo.extra.eas.projectId`.
+Скопируйте Project ID в `app.json` → `expo.extra.eas.projectId` (сейчас стоит `REPLACE_WITH_EAS_PROJECT_ID`).
 
 ### Apple
-1. Create App ID `com.feelgoodsociety.challenge` with Sign In with Apple
-2. Create App in App Store Connect
-3. Update `eas.json` submit.production.ios:
-   - appleId
-   - ascAppId
-   - appleTeamId
+1. App ID `com.feelgoodsociety.challenge` с Sign In with Apple  
+2. Приложение в App Store Connect  
+3. В `eas.json` → `submit.production.ios`:
+   - `appleId`
+   - `ascAppId`
+   - `appleTeamId`
 
 ### Google
-1. Create app with package `com.feelgoodsociety.challenge`
-2. Create service account with Play Console access
-3. Save JSON as `apps/mobile/google-play-service-account.json` (gitignored)
-4. Point `eas.json` submit.android.serviceAccountKeyPath
+1. Приложение с package `com.feelgoodsociety.challenge`  
+2. Service account с доступом к Play Console  
+3. JSON → `apps/mobile/google-play-service-account.json` (gitignore)  
+4. Путь уже в `eas.json` → `serviceAccountKeyPath`
 
-## Secrets (EAS)
+## Секреты EAS
 
 ```bash
-eas secret:create --name EXPO_PUBLIC_SUPABASE_URL --value "https://tblafyztaidgwbrabajw.supabase.co"
+eas secret:create --name EXPO_PUBLIC_SUPABASE_URL --value "https://bruvmdcstlkszvjruska.supabase.co"
 eas secret:create --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value "<publishable key>"
-# optional:
+# опционально:
 eas secret:create --name EXPO_PUBLIC_MINDSET_AUDIO_BASE_URL --value "https://cdn.example.com/mindset"
 ```
 
-## Build
+Локальный `.env` для Expo Go **не** подставляется автоматически в store-сборку — нужны именно EAS secrets.
+
+## Сборка
 
 ```powershell
-# Internal / TestFlight-ready
+# Внутреннее / TestFlight-ready
 eas build --platform ios --profile preview
 eas build --platform android --profile preview
 
-# Store production
+# Production для сторов
 eas build --platform all --profile production
 ```
 
-Or:
+Или:
 
 ```powershell
 .\scripts\eas-build.ps1 -Profile preview -Platform all
 ```
 
-## Submit
+## Отправка в сторы
 
 ```powershell
 eas submit --platform ios --profile production --latest
 eas submit --platform android --profile production --latest
 ```
 
-## TestFlight / Internal testing
-1. iOS: App Store Connect → TestFlight → add internal testers → then external
-2. Android: Play Console → Testing → Internal testing → promote to Production after QA
+## Тестирование до Production
+1. **iOS:** App Store Connect → TestFlight → internal → external  
+2. **Android:** Play Console → Testing → Internal testing → после QA в Production  

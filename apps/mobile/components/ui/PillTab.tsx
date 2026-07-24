@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     padding: 4,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.ringHairline,
   },
   tab: {
     flex: 1,
@@ -43,8 +43,10 @@ const styles = StyleSheet.create({
   },
   tabActive: { backgroundColor: colors.primary },
   text: {
-    fontFamily: fonts.sansSemi,
-    fontSize: 13,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    textTransform: "uppercase",
+    letterSpacing: 1.6,
     color: colors.foreground,
   },
   textActive: { color: colors.primaryForeground },

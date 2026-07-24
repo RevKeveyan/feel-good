@@ -22,4 +22,4 @@ Yes — collects. Does not sell. Does not share with third parties for advertisi
 - Users can request deletion (in-app Delete account)
 
 ## Privacy policy
-https://thefeelgoodsociety.com.au/privacy
+https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/legal/privacy.html

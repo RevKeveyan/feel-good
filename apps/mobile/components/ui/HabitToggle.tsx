@@ -1,6 +1,7 @@
 import { type ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { colors, fonts, radius } from "@/src/theme";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Body, Kicker, Label } from "./Typography";
+import { colors, radius } from "@/src/theme";
 
 type Props = {
   title: string;
@@ -8,18 +9,31 @@ type Props = {
   subtitle?: string;
   onPress: () => void;
   trailing?: ReactNode;
+  points?: number;
 };
 
-export function HabitToggle({ title, done, subtitle, onPress, trailing }: Props) {
+export function HabitToggle({ title, done, subtitle, onPress, trailing, points }: Props) {
   return (
-    <Pressable style={styles.row} onPress={onPress}>
+    <Pressable
+      style={[styles.row, done ? styles.rowDone : styles.rowOpen]}
+      onPress={onPress}
+    >
       <View style={[styles.dot, done && styles.dotDone]}>
         {done ? <View style={styles.innerDot} /> : null}
       </View>
       <View style={styles.copy}>
-        <Text style={[styles.title, done && styles.titleDone]}>{title}</Text>
-        {subtitle ? <Text style={styles.sub}>{subtitle}</Text> : null}
+        <Label style={[styles.title, done && styles.titleDone]}>{title}</Label>
+        {subtitle ? (
+          <Body size="sm" style={styles.sub}>
+            {subtitle}
+          </Body>
+        ) : null}
       </View>
+      {points != null ? (
+        <Kicker style={[styles.points, done && styles.pointsDone]}>
+          {done ? `+${points} pts` : `${points} pts`}
+        </Kicker>
+      ) : null}
       {trailing}
     </Pressable>
   );
@@ -35,7 +49,12 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: colors.border,
+  },
+  rowDone: {
+    borderColor: colors.ringHairline,
+  },
+  rowOpen: {
+    borderColor: colors.ringPrimary,
   },
   dot: {
     width: 24,
@@ -57,18 +76,20 @@ const styles = StyleSheet.create({
   },
   copy: { flex: 1 },
   title: {
-    fontFamily: fonts.sansSemi,
     fontSize: 15,
-    color: colors.foreground,
   },
   titleDone: {
     textDecorationLine: "line-through",
     color: colors.mutedForeground,
   },
   sub: {
-    fontFamily: fonts.sans,
-    fontSize: 12,
-    color: colors.mutedForeground,
     marginTop: 2,
+  },
+  points: {
+    color: colors.primary,
+    flexShrink: 0,
+  },
+  pointsDone: {
+    color: colors.mutedForeground,
   },
 });

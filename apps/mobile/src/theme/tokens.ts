@@ -18,6 +18,9 @@ export const colors = {
   white: "#FFFFFF",
   black: "#222222",
   border: "rgba(34,34,34,0.1)",
+  ringHairline: "rgba(0,0,0,0.05)",
+  ring: "rgba(225,195,64,0.5)",
+  ringPrimary: "rgba(34,34,34,0.3)",
   input: "rgba(34,34,34,0.14)",
   overlay: "rgba(0,0,0,0.4)",
 } as const;

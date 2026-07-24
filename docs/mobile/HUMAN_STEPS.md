@@ -1,27 +1,28 @@
-# Pre-publish — what you still do manually
+# Перед публикацией — что делаете вручную
 
-Code + docs + scripts for publication are ready in the repo.
-These steps need **your accounts** (cannot be automated without login):
+> Полная инструкция на русском: [`PUBLISH_RU.md`](PUBLISH_RU.md)
 
-1. **Supabase**
-   - `npx supabase login`
-   - `.\scripts\deploy-backend.ps1`
-   - Or paste `supabase/migrations/20260720120000_device_tokens.sql` in SQL Editor
-   - Enable Google + Apple + redirect `feelgood://auth/callback`
-   - Details: `docs/mobile/BACKEND_DEPLOY.md`
+Живой статус: [`PREPUBLISH_STATUS.md`](PREPUBLISH_STATUS.md).
 
-2. **Device QA**
-   - Follow `docs/mobile/QA_RUNBOOK.md`
-   - Tick items in `docs/mobile/PARITY_CHECKLIST.md`
+**Supabase:** локальный env → `bruvmdcstlkszvjruska`. Дальше — деплой и Google: [`NEW_SUPABASE_SETUP.md`](NEW_SUPABASE_SETUP.md).
 
-3. **Legal hosting**
-   - Confirm `https://thefeelgoodsociety.com.au/privacy` and `/terms` are live
-   - Or deploy the web app and point Settings links there
+1. **Supabase + Google + письма**
+   - `npx supabase login` затем `.\scripts\deploy-backend.ps1`
+   - Google provider + Redirect URLs (NEW_SUPABASE_SETUP §3)
+   - **Сначала Custom SMTP**, затем шаблоны OTP — иначе письмо reset останется со ссылкой ([`SMTP_AND_EMAIL_RU.md`](SMTP_AND_EMAIL_RU.md))
+   - После SMTP: `.\scripts\apply-auth-email-templates.ps1` (Reset = `{{ .Token }}`, Sender = Feel Good Challenge)
+   - Google OAuth consent **App name** = Feel Good Challenge
+   - [`AUTH_NOTIFY_GUIDE.md`](AUTH_NOTIFY_GUIDE.md)
 
-4. **EAS + stores**
-   - Enroll Apple Developer + Google Play
-   - `cd apps/mobile` → `npx eas login` → `npx eas init`
-   - Paste projectId into `app.json`
-   - `.\scripts\eas-build.ps1 -Profile production -Platform all`
-   - Submit using listing/privacy docs under `docs/mobile/`
-   - Master list: `docs/mobile/SUBMIT_CHECKLIST.md`
+2. **Mindset audio**
+   - `EXPO_PUBLIC_MINDSET_AUDIO_BASE_URL` в `apps/mobile/.env`
+   - Expo `-c`
+
+3. **Legal**
+   - `/privacy` и `/terms` не должны быть 404 — хостинг или правка `LEGAL_URLS`
+
+4. **Device QA**
+   - [`QA_RUNBOOK.md`](QA_RUNBOOK.md) + чеклист в [`PREPUBLISH_STATUS.md`](PREPUBLISH_STATUS.md)
+
+5. **EAS + сторы**
+   - [`SUBMIT_CHECKLIST.md`](SUBMIT_CHECKLIST.md) и [`EAS_BUILD.md`](EAS_BUILD.md)

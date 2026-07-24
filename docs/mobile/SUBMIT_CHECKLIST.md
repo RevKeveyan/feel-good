@@ -1,43 +1,20 @@
-# Final Submit Checklist
+# Финальный чеклист публикации
 
-Complete in order. Check boxes as you finish.
+> **Без жаргона:** [`PUBLISH_SIMPLE_RU.md`](PUBLISH_SIMPLE_RU.md)  
+> Полная инструкция: [`PUBLISH_RU.md`](PUBLISH_RU.md)
 
-## A. Backend (Dashboard / CLI)
-- [ ] Run SQL: `supabase/migrations/20260720120000_device_tokens.sql`
-- [ ] `npx supabase login` then `.\scripts\deploy-backend.ps1`
-- [ ] Google provider enabled + redirect URLs
-- [ ] Apple provider enabled (iOS)
-- [ ] Smoke-test Edge Functions with user JWT
+## A. Backend
+- [ ] Custom SMTP + шаблоны (`SMTP_AND_EMAIL_RU.md` → `apply-auth-email-templates.ps1`)
+- [x] Privacy/Terms URL живые (Supabase Storage; см. `PREPUBLISH_STATUS.md`)
+- [x] Google OAuth на телефоне
 
-## B. Device QA
-- [ ] Follow [QA_RUNBOOK.md](./QA_RUNBOOK.md)
-- [ ] Update [PARITY_CHECKLIST.md](./PARITY_CHECKLIST.md) to all `[x]`
-- [ ] Fix any P0/P1 bugs found
+## B. Сборка и QA
+- [ ] Android preview APK на телефоне
+- [ ] Короткий QA из `PREPUBLISH_STATUS.md`
 
-## C. Brand & legal
-- [x] App icons / splash generated in `apps/mobile/assets/`
-- [ ] Capture store screenshots (see STORE_LISTING.md)
-- [ ] Confirm Privacy/Terms live at thefeelgoodsociety.com.au (or host web `/privacy` `/terms`)
-- [ ] Optional: mindset audio CDN URL
+## C. Google Play
+- [ ] По [`PLAY_SIMPLE_RU.md`](PLAY_SIMPLE_RU.md)
 
-## D. Accounts & EAS
-- [ ] Apple Developer Program enrolled
-- [ ] Google Play Console created
-- [ ] `eas login` + `eas init` → paste projectId into app.json
-- [ ] Fill eas.json Apple/Google submit fields
-- [ ] Set EAS secrets for Supabase keys
-- [ ] `.\scripts\eas-build.ps1 -Profile production -Platform all`
+## D. App Store
+- [ ] По [`IOS_SIMPLE_RU.md`](IOS_SIMPLE_RU.md)
 
-## E. Store consoles
-- [ ] App Store Connect: listing from [STORE_LISTING.md](./STORE_LISTING.md)
-- [ ] App Privacy from [APPLE_PRIVACY.md](./APPLE_PRIVACY.md)
-- [ ] TestFlight internal → external
-- [ ] Submit for App Review
-- [ ] Play Console: listing + [GOOGLE_DATA_SAFETY.md](./GOOGLE_DATA_SAFETY.md)
-- [ ] Internal testing → Production
-
-## Prepared in repo (no account needed)
-- Deploy scripts: `scripts/deploy-backend.ps1`, `scripts/eas-build.ps1`
-- Edge Functions source under `supabase/functions/`
-- Store copy + privacy forms under `docs/mobile/`
-- Mobile MVP screens + account deletion + legal links

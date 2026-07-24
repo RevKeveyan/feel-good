@@ -1,13 +1,16 @@
 # Backend Deploy — Pre-Publish
 
-Project: `tblafyztaidgwbrabajw`  
-URL: `https://tblafyztaidgwbrabajw.supabase.co`
+Project: `bruvmdcstlkszvjruska`  
+URL: `https://bruvmdcstlkszvjruska.supabase.co`  
+Dashboard: https://supabase.com/dashboard/project/bruvmdcstlkszvjruska
+
+Full switch guide: [`NEW_SUPABASE_SETUP.md`](NEW_SUPABASE_SETUP.md).
 
 ## 1. Apply migration `device_tokens`
 
 ### Option A — SQL Editor (fastest)
 
-1. Open [Supabase SQL Editor](https://supabase.com/dashboard/project/tblafyztaidgwbrabajw/sql)
+1. Open [Supabase SQL Editor](https://supabase.com/dashboard/project/bruvmdcstlkszvjruska/sql)
 2. Paste contents of `supabase/migrations/20260720120000_device_tokens.sql`
 3. Run
 
@@ -15,11 +18,11 @@ URL: `https://tblafyztaidgwbrabajw.supabase.co`
 
 ```bash
 npx supabase login
-npx supabase link --project-ref tblafyztaidgwbrabajw
+npx supabase link --project-ref bruvmdcstlkszvjruska
 npx supabase db push
 ```
 
-Or run the helper:
+Or:
 
 ```powershell
 cd "d:\feel good"
@@ -28,51 +31,48 @@ cd "d:\feel good"
 
 ## 2. Deploy Edge Functions
 
-Requires `SUPABASE_ACCESS_TOKEN` (Account → Access Tokens) and project linked.
+Requires `supabase login` (or `$env:SUPABASE_ACCESS_TOKEN`).
 
 ```bash
-npx supabase functions deploy submit-testimonial --project-ref tblafyztaidgwbrabajw
-npx supabase functions deploy register-device --project-ref tblafyztaidgwbrabajw
-npx supabase functions deploy delete-account --project-ref tblafyztaidgwbrabajw
+npx supabase functions deploy submit-testimonial --project-ref bruvmdcstlkszvjruska
+npx supabase functions deploy register-device --project-ref bruvmdcstlkszvjruska
+npx supabase functions deploy delete-account --project-ref bruvmdcstlkszvjruska
 ```
-
-Secrets are auto-injected (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) for Edge Functions.
 
 ## 3. Auth redirects (Dashboard)
 
-Authentication → URL Configuration → **Redirect URLs** add:
+Authentication → URL Configuration → Redirect URLs:
 
 - `feelgood://auth/callback`
+- `feelgood://auth/reset`
+- `exp://127.0.0.1:8083/--/auth/callback`
+- `exp://127.0.0.1:8083/--/auth/reset`
 - `exp://127.0.0.1:8082/--/auth/callback`
-- `https://tblafyztaidgwbrabajw.supabase.co/auth/v1/callback`
+- `exp://127.0.0.1:8082/--/auth/reset`
+- `https://bruvmdcstlkszvjruska.supabase.co/auth/v1/callback`
 
-Site URL can remain the web origin.
+See [`AUTH_NOTIFY_GUIDE.md`](AUTH_NOTIFY_GUIDE.md) and [`NEW_SUPABASE_SETUP.md`](NEW_SUPABASE_SETUP.md).
 
 ## 4. Enable providers
 
 ### Google
-1. Google Cloud Console → OAuth 2.0 Client (Web + iOS + Android)
-2. Supabase → Authentication → Providers → Google → enable
-3. Paste Client ID + Secret
 
-### Apple (required if Google is on iOS)
-1. Apple Developer → Identifiers → App ID → Sign In with Apple
-2. Supabase → Providers → Apple → enable
-3. Services ID, Team ID, Key ID, private key `.p8`
+1. Google Cloud Console → OAuth 2.0 Client ID (**Web application**)
+2. Authorized redirect URI: `https://bruvmdcstlkszvjruska.supabase.co/auth/v1/callback`
+3. Supabase → Authentication → Providers → Google → enable + Client ID/Secret
+
+### Apple (iOS)
+
+See [`AUTH_SETUP.md`](AUTH_SETUP.md).
 
 ## 5. Storage RLS smoke test
 
-After login in the app, upload:
-- Vision board image → bucket `vision-board`
-- Weekly photo → bucket `weekly-photos`
-
-If upload fails with RLS, confirm policies from migrations `20260712070942_*` and `20260712072823_*` are applied.
+After login: vision-board + weekly-photos uploads.
 
 ## 6. Verify functions
 
 ```bash
-# After auth, from app or curl with user JWT:
-curl -X POST "https://tblafyztaidgwbrabajw.supabase.co/functions/v1/submit-testimonial" \
+curl -X POST "https://bruvmdcstlkszvjruska.supabase.co/functions/v1/submit-testimonial" \
   -H "Authorization: Bearer USER_JWT" \
   -H "apikey: PUBLISHABLE_KEY" \
   -H "Content-Type: application/json" \

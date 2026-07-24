@@ -1,12 +1,93 @@
 import * as AppleAuthentication from "expo-apple-authentication";
-import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
 import { Platform } from "react-native";
 import { supabase } from "./supabase";
 
 WebBrowser.maybeCompleteAuthSession();
 
-const redirectTo = Linking.createURL("auth/callback");
+const SITE_URL_HINT =
+  "In Supabase → Authentication → URL Configuration set Site URL to feelgood://auth/callback and remove bare https://….supabase.co from Redirect URLs (keep only …/auth/v1/callback).";
+
+const OAUTH_CALLBACK_URL = "feelgood://auth/callback";
+const OAUTH_RESET_URL = "feelgood://auth/reset";
+
+let lastOAuthRedirectTo = "";
+let lastOAuthRedirectParam: string | null = null;
+
+export function getOAuthRedirectTo() {
+  return lastOAuthRedirectTo || OAUTH_CALLBACK_URL;
+}
+
+export function getResetRedirectTo() {
+  return OAUTH_RESET_URL;
+}
+
+export function getLastOAuthRedirectParam() {
+  return lastOAuthRedirectParam;
+}
+
+function isSupabaseHostedAuthLanding(url: string): boolean {
+  try {
+    const host = new URL(url).hostname;
+    return host.endsWith(".supabase.co");
+  } catch {
+    return url.includes(".supabase.co");
+  }
+}
+
+function isAuthCallbackDeepLink(url: string): boolean {
+  const lower = url.toLowerCase();
+  return (
+    lower.includes("auth/callback") ||
+    lower.includes("auth/reset") ||
+    parseAuthCallbackUrl(url).access_token != null
+  );
+}
+
+export function parseAuthCallbackUrl(url: string): {
+  access_token: string | null;
+  refresh_token: string | null;
+  type: string | null;
+} {
+  const hashIndex = url.indexOf("#");
+  const queryIndex = url.indexOf("?");
+  const hashParams = hashIndex >= 0 ? url.slice(hashIndex + 1) : "";
+  const queryParams =
+    queryIndex >= 0 ? url.slice(queryIndex + 1, hashIndex >= 0 ? hashIndex : undefined) : "";
+  const params = new URLSearchParams(hashParams || queryParams);
+  if (hashParams && queryParams) {
+    const query = new URLSearchParams(queryParams);
+    for (const [key, value] of query.entries()) {
+      if (!params.has(key)) params.set(key, value);
+    }
+  }
+  return {
+    access_token: params.get("access_token"),
+    refresh_token: params.get("refresh_token"),
+    type: params.get("type"),
+  };
+}
+
+export async function completeSessionFromUrl(url: string) {
+  const { access_token, refresh_token } = parseAuthCallbackUrl(url);
+  if (!access_token || !refresh_token) {
+    const lower = url.toLowerCase();
+    if (lower.includes("requested path is invalid") || lower.includes("required path is invalid")) {
+      throw new Error(
+        `OAuth redirect failed (path is invalid). ${SITE_URL_HINT}\nApp redirectTo: ${getOAuthRedirectTo()}\nOAuth redirect_to param: ${lastOAuthRedirectParam ?? "(none)"}`,
+      );
+    }
+    if (isSupabaseHostedAuthLanding(url)) {
+      throw new Error(
+        `OAuth landed on Supabase Site URL without tokens. ${SITE_URL_HINT}\nApp redirectTo: ${getOAuthRedirectTo()}\nOAuth redirect_to param: ${lastOAuthRedirectParam ?? "(none)"}`,
+      );
+    }
+    throw new Error("Auth callback missing tokens");
+  }
+  const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+  if (error) throw error;
+}
 
 export async function signInWithEmail(email: string, password: string) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -22,26 +103,110 @@ export async function signUpWithEmail(email: string, password: string, displayNa
   if (error) throw error;
 }
 
+export async function requestPasswordReset(email: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: OAUTH_RESET_URL,
+  });
+  if (error) throw error;
+}
+
+export async function verifyRecoveryOtp(email: string, token: string) {
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token: token.trim(),
+    type: "recovery",
+  });
+  if (error) throw error;
+}
+
+export async function updatePassword(newPassword: string) {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}
+
+async function openAuthSessionWithLinkingFallback(authUrl: string, redirectTo: string) {
+  let settled = false;
+  const linkHandle: { remove: (() => void) | undefined } = { remove: undefined };
+
+  const linkPromise = new Promise<string>((resolve) => {
+    const sub = Linking.addEventListener("url", ({ url }) => {
+      if (settled || !isAuthCallbackDeepLink(url)) return;
+      settled = true;
+      sub.remove();
+      linkHandle.remove = undefined;
+      resolve(url);
+    });
+    linkHandle.remove = () => sub.remove();
+  });
+
+  try {
+    const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectTo);
+    if (result.type === "success" && result.url) {
+      settled = true;
+      linkHandle.remove?.();
+      linkHandle.remove = undefined;
+      return result.url;
+    }
+
+    const initialUrl = await Linking.getInitialURL();
+    if (initialUrl && isAuthCallbackDeepLink(initialUrl)) {
+      settled = true;
+      linkHandle.remove?.();
+      linkHandle.remove = undefined;
+      return initialUrl;
+    }
+
+    const linked = await Promise.race([
+      linkPromise,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 800)),
+    ]);
+    if (linked) return linked;
+
+    throw new Error(
+      `Google sign in cancelled or redirect did not return to the app. ${SITE_URL_HINT}\nApp redirectTo: ${redirectTo}\nOAuth redirect_to param: ${lastOAuthRedirectParam ?? "(none)"}`,
+    );
+  } finally {
+    linkHandle.remove?.();
+    linkHandle.remove = undefined;
+  }
+}
+
 export async function signInWithGoogle() {
+  const oauthRedirectTo = OAUTH_CALLBACK_URL;
+  lastOAuthRedirectTo = oauthRedirectTo;
+  lastOAuthRedirectParam = null;
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo,
+      redirectTo: oauthRedirectTo,
       skipBrowserRedirect: true,
     },
   });
   if (error) throw error;
   if (!data.url) throw new Error("No OAuth URL returned");
 
-  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-  if (result.type !== "success" || !result.url) {
-    throw new Error("Google sign in cancelled");
+  try {
+    lastOAuthRedirectParam = new URL(data.url).searchParams.get("redirect_to");
+  } catch {
+    lastOAuthRedirectParam = null;
   }
 
-  await completeOAuthFromUrl(result.url);
+  if (__DEV__) {
+    console.log("[auth] oauthRedirectTo", oauthRedirectTo);
+    console.log("[auth] supabase redirect_to param", lastOAuthRedirectParam);
+  }
+
+  const callbackUrl = await openAuthSessionWithLinkingFallback(data.url, oauthRedirectTo);
+  await completeSessionFromUrl(callbackUrl);
 }
 
+export const APPLE_SIGN_IN_ENABLED = false;
+
 export async function signInWithApple() {
+  if (!APPLE_SIGN_IN_ENABLED) {
+    throw new Error("Apple Sign In is disabled");
+  }
   if (Platform.OS !== "ios") {
     throw new Error("Apple Sign In is only available on iOS");
   }
@@ -61,23 +226,9 @@ export async function signInWithApple() {
   if (error) throw error;
 }
 
-async function completeOAuthFromUrl(url: string) {
-  const hashIndex = url.indexOf("#");
-  const queryIndex = url.indexOf("?");
-  const paramsString = hashIndex >= 0 ? url.slice(hashIndex + 1) : queryIndex >= 0 ? url.slice(queryIndex + 1) : "";
-  const params = new URLSearchParams(paramsString);
-  const access_token = params.get("access_token");
-  const refresh_token = params.get("refresh_token");
-  if (!access_token || !refresh_token) {
-    throw new Error("OAuth callback missing tokens");
-  }
-  const { error } = await supabase.auth.setSession({ access_token, refresh_token });
-  if (error) throw error;
-}
-
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }
 
-export { redirectTo };
+export { getOAuthRedirectTo as redirectTo, getResetRedirectTo as resetRedirectTo };

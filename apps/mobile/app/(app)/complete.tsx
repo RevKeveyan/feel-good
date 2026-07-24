@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Image, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
+import { ArrowRight, Check, Lock } from "@/components/ui/icons";
 import {
   CHALLENGE_LENGTH,
   WHEEL_DIMENSIONS,
@@ -25,9 +26,11 @@ import {
   DisplayTitle,
   GradientCard,
   Kicker,
+  Label,
   OutlineButton,
   PrimaryButton,
   Screen,
+  StatValue,
 } from "@/components/ui";
 import { colors, fonts, gradients, radius, space } from "@/src/theme";
 
@@ -40,6 +43,7 @@ export default function CompleteScreen() {
   const [entries, setEntries] = useState<DailyEntry[]>([]);
   const [rating, setRating] = useState(0);
   const [story, setStory] = useState("");
+  const [permissionToPublish, setPermissionToPublish] = useState(true);
   const [visionUrls, setVisionUrls] = useState<string[]>([]);
 
   useEffect(() => {
@@ -79,19 +83,37 @@ export default function CompleteScreen() {
   }
 
   const day = profile ? currentDay(profile.challenge_start_date) : 1;
+  const daysLeft = Math.max(0, CHALLENGE_LENGTH - day);
   const shifts = useMemo(() => biggestShifts(day1, day55), [day1, day55]);
+  const fullDays = completedDaysCount(entries);
+  const displayName = profile?.display_name?.split(/\s+/)[0] || "you";
 
   if (day < CHALLENGE_LENGTH) {
     return (
       <Screen>
         <View style={styles.center}>
           <BrandCard style={{ alignItems: "center", width: "100%" }}>
-            <Text style={styles.lock}>🔒</Text>
-            <DisplayTitle style={{ fontSize: 32, textAlign: "center" }}>Not yet.</DisplayTitle>
-            <Body style={{ textAlign: "center", marginTop: 8, marginBottom: 20 }}>
-              Sealed until Day {CHALLENGE_LENGTH}. You&apos;re on Day {day}.
+            <View style={styles.lockTile}>
+              <Lock size={24} color={colors.primary} strokeWidth={2} />
+            </View>
+            <Kicker style={{ marginBottom: 8 }}>Sealed until Day {CHALLENGE_LENGTH}</Kicker>
+            <DisplayTitle style={{ textAlign: "center" }}>Not yet.</DisplayTitle>
+            <Body style={{ textAlign: "center", marginTop: 8, marginBottom: 16 }}>
+              Your completion reveal — the before-and-after wheel, your Future You letter, and your transformation — unlocks on Day {CHALLENGE_LENGTH}.
             </Body>
-            <PrimaryButton label="Back to Today" onPress={() => router.back()} style={{ width: "100%" }} />
+            <View style={styles.dayBox}>
+              <Kicker>You&apos;re on</Kicker>
+              <StatValue size="lg" style={styles.dayBig}>Day {day}</StatValue>
+              <Body>
+                {daysLeft} day{daysLeft === 1 ? "" : "s"} to go.
+              </Body>
+            </View>
+            <PrimaryButton
+              label="Back to today"
+              onPress={() => router.back()}
+              style={{ width: "100%" }}
+              trailingIcon={<ArrowRight size={16} color={colors.primaryForeground} strokeWidth={2} />}
+            />
           </BrandCard>
         </View>
       </Screen>
@@ -118,7 +140,7 @@ export default function CompleteScreen() {
 
   async function sendReview() {
     try {
-      await submitTestimonial({ rating, story, permissionToPublish: true });
+      await submitTestimonial({ rating, story, permissionToPublish });
       Alert.alert("Thank you", "Your review was submitted.");
     } catch (e) {
       Alert.alert("Error", e instanceof Error ? e.message : "Submit failed");
@@ -129,17 +151,19 @@ export default function CompleteScreen() {
     return (
       <Screen>
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-          <Kicker>Day 55</Kicker>
-          <DisplayTitle style={styles.title}>Rate yourself again</DisplayTitle>
-          <Body style={{ marginBottom: space.lg }}>Compare with Day 1 and see your shifts.</Body>
+          <Kicker>Day 55 · Rewheel</Kicker>
+          <DisplayTitle size="sm" style={styles.title}>Rate yourself again.</DisplayTitle>
+          <Body style={{ marginBottom: space.lg }}>
+            Move each area to where you are now. Your Day 1 scores stay hidden — you&apos;ll see the full before-and-after on the next screen.
+          </Body>
           <BrandCard>
             {WHEEL_DIMENSIONS.map((d) => {
               const key = d.key as WheelKey;
               return (
                 <View key={key} style={{ marginBottom: 10 }}>
-                  <Text style={styles.scaleLabel}>
+                  <Label numberOfLines={2} style={styles.scaleLabel}>
                     {d.label}: {day55[key]}/10
-                  </Text>
+                  </Label>
                   <View style={styles.scaleRow}>
                     {Array.from({ length: 10 }).map((_, i) => {
                       const n = i + 1;
@@ -170,45 +194,50 @@ export default function CompleteScreen() {
     <Screen>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <GradientCard colorsStops={gradients.score} orb>
-          <Kicker>Transformation</Kicker>
-          <DisplayTitle style={{ fontSize: 36, marginTop: 4 }}>You did it.</DisplayTitle>
-          <Text style={styles.tagline}>WE DO GOOD THINGS HERE</Text>
+          <Kicker>Day 55 · Complete</Kicker>
+          <DisplayTitle size="lg" style={{ marginTop: 4 }}>
+            You did it, {displayName}.
+          </DisplayTitle>
+          <Body style={{ marginTop: 8 }}>
+            55 days. {fullDays} full completions. A different you.
+          </Body>
         </GradientCard>
 
         <View style={styles.statsRow}>
           <BrandCard style={styles.statCard}>
-            <Kicker>Days</Kicker>
-            <Text style={styles.statValue}>{completedDaysCount(entries)}</Text>
+            <Kicker>Full days</Kicker>
+            <StatValue size="md" style={styles.statValue}>{fullDays}</StatValue>
           </BrandCard>
           <BrandCard style={styles.statCard}>
-            <Kicker>Streak</Kicker>
-            <Text style={styles.statValue}>{longestStreak(entries)}</Text>
+            <Kicker>Longest streak</Kicker>
+            <StatValue size="md" style={styles.statValue}>{longestStreak(entries)}</StatValue>
           </BrandCard>
           <BrandCard style={styles.statCard}>
             <Kicker>Check-ins</Kicker>
-            <Text style={styles.statValue}>{checkInsCount(entries)}</Text>
+            <StatValue size="md" style={styles.statValue}>{checkInsCount(entries)}</StatValue>
           </BrandCard>
         </View>
 
-        <DisplayTitle style={styles.section}>Biggest shifts</DisplayTitle>
+        <Kicker style={{ marginBottom: 8 }}>Before vs after</Kicker>
+        <DisplayTitle size="sm" style={styles.section}>Biggest shifts</DisplayTitle>
         {shifts.map((s) => (
           <BrandCard key={s.key} style={{ marginBottom: 8, padding: 14 }}>
-            <Text style={styles.shift}>
+            <Body style={styles.shift}>
               {s.label}: {s.from} → {s.to}
-            </Text>
+            </Body>
           </BrandCard>
         ))}
 
         {letter ? (
           <BrandCard style={{ marginVertical: space.lg }}>
-            <Kicker>Letter to Future You</Kicker>
-            <Text style={styles.letter}>&ldquo;{letter}&rdquo;</Text>
+            <Kicker>Your letter, delivered</Kicker>
+            <DisplayTitle size="sm" style={styles.letter}>&ldquo;{letter}&rdquo;</DisplayTitle>
           </BrandCard>
         ) : null}
 
         {visionUrls.length > 0 && (
           <>
-            <DisplayTitle style={styles.section}>Your vision board</DisplayTitle>
+            <DisplayTitle size="sm" style={styles.section}>Your vision board</DisplayTitle>
             <View style={styles.visionGrid}>
               {visionUrls.map((url) => (
                 <Image key={url} source={{ uri: url }} style={styles.visionImage} />
@@ -217,9 +246,10 @@ export default function CompleteScreen() {
           </>
         )}
 
-        <OutlineButton label="Share transformation" onPress={shareSummary} style={{ marginTop: space.md }} />
+        <OutlineButton label="Share your transformation" onPress={shareSummary} style={{ marginTop: space.md }} />
 
-        <DisplayTitle style={[styles.section, { marginTop: space.xl }]}>Leave a review</DisplayTitle>
+        <Kicker style={{ marginTop: space.xl }}>Leave a review</Kicker>
+        <DisplayTitle size="sm" style={styles.section}>Share your story.</DisplayTitle>
         <View style={styles.stars}>
           {[1, 2, 3, 4, 5].map((n) => (
             <Pressable key={n} onPress={() => setRating(n)}>
@@ -235,6 +265,17 @@ export default function CompleteScreen() {
           onChangeText={setStory}
           multiline
         />
+        <Pressable
+          style={styles.permissionRow}
+          onPress={() => setPermissionToPublish((v) => !v)}
+        >
+          <View style={[styles.checkbox, permissionToPublish && styles.checkboxOn]}>
+            {permissionToPublish ? (
+              <Check size={14} color={colors.primaryForeground} strokeWidth={2.5} />
+            ) : null}
+          </View>
+          <Body style={{ flex: 1 }}>Allow Feel Good Society to publish my review</Body>
+        </Pressable>
         <PrimaryButton label="Submit review" onPress={sendReview} />
       </ScrollView>
     </Screen>
@@ -244,34 +285,37 @@ export default function CompleteScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   container: { paddingTop: space.lg, paddingBottom: 48 },
-  title: { fontSize: 28, marginTop: 8, marginBottom: 8 },
-  lock: { fontSize: 28, marginBottom: 8 },
-  tagline: {
-    marginTop: 16,
-    fontFamily: fonts.heading,
-    fontSize: 10,
-    letterSpacing: 3,
-    color: colors.mutedForeground,
+  title: { marginTop: 8, marginBottom: 8 },
+  lockTile: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary + "1A",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
   },
+  dayBox: {
+    width: "100%",
+    backgroundColor: colors.background,
+    borderRadius: radius["2xl"],
+    padding: 16,
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  dayBig: { marginVertical: 4 },
   statsRow: { flexDirection: "row", gap: 8, marginVertical: space.lg },
   statCard: { flex: 1, padding: 12, alignItems: "center" },
   statValue: {
-    fontFamily: fonts.display,
-    fontStyle: "italic",
-    fontSize: 24,
-    color: colors.foreground,
     marginTop: 4,
   },
-  section: { fontSize: 22, marginBottom: 8 },
-  shift: { fontFamily: fonts.sans, color: colors.foreground },
+  section: { marginBottom: 8 },
+  shift: { color: colors.foreground },
   letter: {
-    fontFamily: fonts.display,
-    fontStyle: "italic",
     marginTop: 8,
-    lineHeight: 24,
-    color: colors.foreground,
+    lineHeight: 28,
   },
-  scaleLabel: { fontFamily: fonts.sansSemi, color: colors.foreground },
+  scaleLabel: { marginBottom: 0 },
   scaleRow: { flexDirection: "row", gap: 4, marginTop: 4 },
   scaleDot: {
     flex: 1,
@@ -279,7 +323,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.ringHairline,
   },
   scaleDotActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   stars: { flexDirection: "row", gap: 8, marginVertical: 8 },
@@ -292,8 +336,28 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     color: colors.foreground,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.ringHairline,
     textAlignVertical: "top",
+  },
+  permissionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 16,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.ringHairline,
+    backgroundColor: colors.card,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxOn: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   visionGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8, marginBottom: 8 },
   visionImage: {

@@ -21,6 +21,10 @@ dist-ssr
 apps/mobile/.env
 apps/mobile/.expo/
 apps/mobile/google-play-service-account.json
+apps/mobile/credentials.json
+apps/mobile/credentials/
+*.jks
+*.p12
 *.p8
 
 # Wrangler / Cloudflare

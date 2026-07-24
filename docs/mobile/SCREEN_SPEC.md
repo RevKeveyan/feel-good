@@ -1,5 +1,7 @@
 # Screen Spec — Web Reference for Mobile
 
+Typography mapping: [`TYPOGRAPHY.md`](TYPOGRAPHY.md).
+
 ## Auth (`/auth`)
 
 | Field | Type | Notes |

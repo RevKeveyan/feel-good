@@ -9,14 +9,20 @@
 - [x] Photo library permission requested before vision upload
 - [x] Legal URLs centralized in `@feelgood/shared` LEGAL_URLS
 
+## Before you start
+- Tick results also in [`PREPUBLISH_STATUS.md`](PREPUBLISH_STATUS.md) Device QA scorecard.
+- Do **not** start TestFlight until Edge Functions return 2xx, legal URLs open, and scorecard is green.
+- Agent cannot run physical-device steps; this runbook is the human gate.
+
 ## Manual device checklist (must pass before TestFlight)
 
 ### Auth
 1. Email signup → confirm email → sign in
 2. Kill app → reopen → session persists
 3. Sign out → lands on Auth
-4. Google (after Dashboard config)
-5. Apple on iOS (after Dashboard config)
+4. Forgot password → email link → Set new password → sign in with new password
+5. Google (after Dashboard config — see `AUTH_NOTIFY_GUIDE.md`)
+6. Apple on iOS (after Dashboard config)
 
 ### Onboarding
 1. Complete all steps with Back/Next
@@ -36,9 +42,13 @@
 2. Rewheel → reveal → testimonial → share
 
 ### Settings
-1. Enable reminders (physical device)
-2. Privacy/Terms open in browser
-3. Delete account removes user
+1. **Test reminder (1 min)** on physical device — notification fires (~60s, app in background)
+2. Enable **Daily reminders** (9:00 AM local)
+3. After `register-device` deploy: `select * from device_tokens` has a row
+4. Privacy/Terms open in browser
+5. Delete account removes user
+
+Full auth/notify matrix: [`AUTH_NOTIFY_GUIDE.md`](AUTH_NOTIFY_GUIDE.md).
 
 ## SQL helpers for QA
 

@@ -1,22 +1,36 @@
-import { useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
-import { Audio } from "expo-av";
+import { ArrowLeft, Headphones, Lock, Pause, Play } from "@/components/ui/icons";
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import {
   MINDSET_CATEGORIES,
   MINDSET_TRACKS,
   getMindsetAudioUrl,
   type MindsetCategory,
 } from "@feelgood/shared";
-import { Body, DisplayTitle, Kicker, Screen } from "@/components/ui";
-import { colors, fonts, radius, space } from "@/src/theme";
+import { Body, DisplayTitle, IconLabel, Kicker, Label, Screen } from "@/components/ui";
+import { colors, radius, space } from "@/src/theme";
 
 const audioBase = process.env.EXPO_PUBLIC_MINDSET_AUDIO_BASE_URL ?? null;
 
 export default function MindsetScreen() {
   const [category, setCategory] = useState<MindsetCategory | "All">("All");
   const [playingId, setPlayingId] = useState<number | null>(null);
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const player = useAudioPlayer(null);
+  const status = useAudioPlayerStatus(player);
+
+  useEffect(() => {
+    void setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: false,
+      interruptionMode: "duckOthers",
+    });
+  }, []);
+
+  useEffect(() => {
+    if (status.didJustFinish) setPlayingId(null);
+  }, [status.didJustFinish]);
 
   const tracks = useMemo(() => {
     const withAudio = MINDSET_TRACKS.map((t) => ({
@@ -27,37 +41,42 @@ export default function MindsetScreen() {
     return withAudio.filter((t) => t.category === category);
   }, [category]);
 
-  async function togglePlay(trackId: number, url: string | null) {
+  function togglePlay(trackId: number, url: string | null) {
     if (!url) return;
     if (playingId === trackId) {
-      await soundRef.current?.stopAsync();
+      player.pause();
       setPlayingId(null);
       return;
     }
-    await soundRef.current?.unloadAsync();
-    const { sound } = await Audio.Sound.createAsync({ uri: url });
-    soundRef.current = sound;
+    player.replace({ uri: url });
+    player.play();
     setPlayingId(trackId);
-    sound.setOnPlaybackStatusUpdate((status) => {
-      if (status.isLoaded && status.didJustFinish) setPlayingId(null);
-    });
-    await sound.playAsync();
   }
 
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <Pressable onPress={() => router.back()}>
-          <Kicker>← Today</Kicker>
+          <IconLabel
+            gap={6}
+            icon={<ArrowLeft size={14} color={colors.mutedForeground} strokeWidth={2} />}
+          >
+            <Kicker>Back to today</Kicker>
+          </IconLabel>
         </Pressable>
 
         <View style={styles.header}>
           <View style={styles.iconTile}>
-            <Text style={styles.iconGlyph}>◎</Text>
+            <Headphones size={20} color={colors.foreground} strokeWidth={2} />
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={styles.headerCopy}>
             <Kicker>21-Day Mindset Rewire</Kicker>
-            <DisplayTitle style={{ fontSize: 28, marginTop: 4 }}>Mindset library</DisplayTitle>
+            <DisplayTitle size="sm" style={{ fontSize: 28, marginTop: 4 }}>
+              One Session. One Moment.
+            </DisplayTitle>
+            <Body style={{ marginTop: 6 }}>
+              Guided tracks designed to strengthen confidence, nurture emotional wellbeing and cultivate calm - helping you feel good, for good.
+            </Body>
           </View>
         </View>
 
@@ -68,9 +87,13 @@ export default function MindsetScreen() {
               style={[styles.chip, category === c && styles.chipActive]}
               onPress={() => setCategory(c)}
             >
-              <Text style={[styles.chipText, category === c && styles.chipTextActive]}>
-                {c === "All" ? "All" : c.split(",")[0]}
-              </Text>
+              {category === c ? (
+                <Label style={styles.chipTextActive}>{c === "All" ? "All" : c}</Label>
+              ) : (
+                <Body size="sm" style={styles.chipText}>
+                  {c === "All" ? "All" : c}
+                </Body>
+              )}
             </Pressable>
           ))}
         </View>
@@ -86,24 +109,38 @@ export default function MindsetScreen() {
                   playing && styles.playBtnPlaying,
                 ]}
                 disabled={!track.audioUrl}
-                onPress={() => void togglePlay(track.id, track.audioUrl)}
+                onPress={() => togglePlay(track.id, track.audioUrl)}
               >
-                <Text style={styles.playGlyph}>
-                  {playing ? "❚❚" : track.audioUrl ? "▶" : "🔒"}
-                </Text>
+                {!track.audioUrl ? (
+                  <Lock size={16} color={colors.mutedForeground} strokeWidth={2} />
+                ) : playing ? (
+                  <Pause size={18} color={colors.primaryForeground} strokeWidth={2} />
+                ) : (
+                  <View style={{ transform: [{ translateX: 2 }] }}>
+                    <Play size={18} color={colors.foreground} strokeWidth={2} />
+                  </View>
+                )}
               </Pressable>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.trackTitle}>
+              <View style={styles.trackCopy}>
+                <Label style={styles.trackTitle}>
                   Day {track.day} · {track.title}
-                </Text>
-                <Text style={styles.affirmation}>&ldquo;{track.affirmation}&rdquo;</Text>
+                </Label>
+                <Body size="sm" style={styles.meta}>
+                  {track.duration} · {track.category}
+                </Body>
+                <DisplayTitle size="sm" style={styles.affirmation}>
+                  &ldquo;{track.affirmation}&rdquo;
+                </DisplayTitle>
               </View>
             </View>
           );
         })}
 
         {!audioBase && (
-          <Body style={styles.hint}>Set EXPO_PUBLIC_MINDSET_AUDIO_BASE_URL to unlock audio.</Body>
+          <Body style={styles.hint}>
+            Audio for each day will unlock as it is added.
+            {__DEV__ ? " Set EXPO_PUBLIC_MINDSET_AUDIO_BASE_URL in .env for local CDN." : ""}
+          </Body>
         )}
       </ScrollView>
     </Screen>
@@ -112,7 +149,8 @@ export default function MindsetScreen() {
 
 const styles = StyleSheet.create({
   container: { paddingTop: space.lg, paddingBottom: 40 },
-  header: { flexDirection: "row", gap: 14, alignItems: "center", marginTop: space.lg, marginBottom: space.lg },
+  header: { flexDirection: "row", gap: 14, alignItems: "flex-start", marginTop: space.lg, marginBottom: space.lg },
+  headerCopy: { flex: 1, minWidth: 0 },
   iconTile: {
     width: 52,
     height: 52,
@@ -121,7 +159,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  iconGlyph: { fontSize: 20, color: colors.foreground },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: space.lg },
   chip: {
     paddingHorizontal: 14,
@@ -129,11 +166,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.ringHairline,
   },
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { fontFamily: fonts.sans, fontSize: 13, color: colors.foreground },
-  chipTextActive: { color: colors.primaryForeground, fontFamily: fonts.sansSemi },
+  chipText: { color: colors.foreground },
+  chipTextActive: { color: colors.primaryForeground, fontSize: 12, flexShrink: 1 },
   row: {
     flexDirection: "row",
     gap: 12,
@@ -142,7 +179,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.ringHairline,
     alignItems: "center",
   },
   playBtn: {
@@ -154,15 +191,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   playBtnPlaying: { backgroundColor: colors.primary },
-  playBtnDisabled: { backgroundColor: colors.border },
-  playGlyph: { fontSize: 12, color: colors.foreground },
-  trackTitle: { fontFamily: fonts.sansSemi, color: colors.foreground },
+  playBtnDisabled: { backgroundColor: colors.muted },
+  trackCopy: { flex: 1, minWidth: 0 },
+  trackTitle: { fontSize: 14 },
+  meta: {
+    marginTop: 2,
+    flexShrink: 1,
+  },
   affirmation: {
-    fontFamily: fonts.display,
-    fontStyle: "italic",
     color: colors.mutedForeground,
-    fontSize: 13,
+    fontSize: 12,
+    fontStyle: "italic",
     marginTop: 4,
+    flexShrink: 1,
   },
   hint: { textAlign: "center", marginTop: 16 },
 });

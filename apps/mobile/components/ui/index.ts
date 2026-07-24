@@ -1,6 +1,7 @@
 export { Screen } from "./Screen";
-export { DisplayTitle, Kicker, Body } from "./Typography";
+export { DisplayTitle, Kicker, Body, Label, StatValue } from "./Typography";
 export { PrimaryButton, OutlineButton } from "./Buttons";
+export { IconLabel } from "./IconLabel";
 export { BrandCard, GradientCard } from "./Cards";
 export { BrandWordmark } from "./BrandWordmark";
 export { SoftOrbs } from "./SoftOrbs";
@@ -8,3 +9,4 @@ export { PillTab } from "./PillTab";
 export { HabitToggle } from "./HabitToggle";
 export { ProgressBar } from "./ProgressBar";
 export { ScoreRing } from "./ScoreRing";
+export * from "./icons";

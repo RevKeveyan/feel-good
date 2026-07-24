@@ -8,8 +8,12 @@ React Native app for App Store and Google Play. Web app at repo root remains the
 cd apps/mobile
 cp .env.example .env
 npm install
-npx expo start
+npm run start:clean
 ```
+
+**Phone only (recommended):** after `start:clean`, scan the QR in Expo Go on your physical phone. Do **not** press `a` and do **not** run `npm run android` — that opens the emulator. Leave emulators off.
+
+If the screen is **black**: Force stop Expo Go on the phone, ensure no emulator is running (`adb devices` empty of `emulator-*`), then `npm run start:clean` again. One client only. Enter the exact Metro URL in Expo Go if needed. Details: `docs/mobile/AUTH_NOTIFY_GUIDE.md` (section «2× Expo Go / black screen»).
 
 ## Env
 

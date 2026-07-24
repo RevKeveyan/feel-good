@@ -23,7 +23,7 @@ Fill App Store Connect → App Privacy using this map.
 - Browsing history
 
 ## Privacy Policy URL
-https://thefeelgoodsociety.com.au/privacy
+https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/legal/privacy.html
 
 ## Account deletion
 In-app: Settings → Delete account  

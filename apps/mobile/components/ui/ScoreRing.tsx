@@ -1,6 +1,8 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { CheckCircle2 } from "@/components/ui/icons";
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from "react-native-svg";
-import { colors, fonts } from "@/src/theme";
+import { Body, DisplayTitle, Kicker, StatValue } from "./Typography";
+import { colors } from "@/src/theme";
 
 type Props = {
   score: number;
@@ -33,7 +35,7 @@ export function ScoreRing({ score, max = 100, habits, checkInDone, remaining }: 
             cx={size / 2}
             cy={size / 2}
             r={r}
-            stroke={colors.border}
+            stroke={colors.ringHairline}
             strokeWidth={stroke}
             fill="none"
           />
@@ -50,24 +52,51 @@ export function ScoreRing({ score, max = 100, habits, checkInDone, remaining }: 
           />
         </Svg>
         <View style={styles.center}>
-          <Text style={styles.label}>Daily Score</Text>
-          <Text style={styles.score}>{score}</Text>
+          <Kicker>Daily Score</Kicker>
+          <DisplayTitle size="xl" style={styles.score}>
+            {score}
+          </DisplayTitle>
+          {checkInDone ? (
+            <View style={styles.completeRow}>
+              <CheckCircle2 size={12} color={colors.primary} strokeWidth={2} />
+              <Kicker style={styles.completeText}>Day complete</Kicker>
+            </View>
+          ) : null}
         </View>
       </View>
       <View style={styles.meta}>
         <MetaItem label="Habits" value={`${habits}/5`} />
-        <MetaItem label="Check-in" value={checkInDone ? "Done" : "Open"} />
-        <MetaItem label="Left" value={`${remaining}`} />
+        <View style={styles.divider} />
+        <MetaItem label="Check-in" value={checkInDone ? "Done" : "Required"} muted={!checkInDone} />
+        <View style={styles.divider} />
+        <MetaItem label="Remaining" value={`${remaining} days`} accent />
       </View>
     </View>
   );
 }
 
-function MetaItem({ label, value }: { label: string; value: string }) {
+function MetaItem({
+  label,
+  value,
+  muted,
+  accent,
+}: {
+  label: string;
+  value: string;
+  muted?: boolean;
+  accent?: boolean;
+}) {
   return (
     <View style={styles.metaItem}>
-      <Text style={styles.metaLabel}>{label}</Text>
-      <Text style={styles.metaValue}>{value}</Text>
+      <Kicker numberOfLines={1} style={styles.metaKicker}>
+        {label}
+      </Kicker>
+      <StatValue
+        size="sm"
+        style={[styles.metaValue, muted && styles.metaValueMuted, accent && styles.metaValueAccent]}
+      >
+        {value}
+      </StatValue>
     </View>
   );
 }
@@ -82,39 +111,30 @@ const styles = StyleSheet.create({
   },
   svg: { position: "absolute" },
   center: { alignItems: "center" },
-  label: {
-    fontFamily: fonts.heading,
-    fontSize: 10,
-    letterSpacing: 2,
-    textTransform: "uppercase",
-    color: colors.mutedForeground,
+  score: { marginTop: 2 },
+  completeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 4,
   },
-  score: {
-    fontFamily: fonts.display,
-    fontStyle: "italic",
-    fontSize: 48,
-    color: colors.foreground,
-    marginTop: 2,
+  completeText: {
+    color: colors.primary,
   },
   meta: {
     flexDirection: "row",
     width: "100%",
     marginTop: 16,
-    gap: 8,
+    alignItems: "stretch",
   },
-  metaItem: { flex: 1, alignItems: "center" },
-  metaLabel: {
-    fontFamily: fonts.heading,
-    fontSize: 10,
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
-    color: colors.mutedForeground,
+  metaItem: { flex: 1, alignItems: "center", minWidth: 0, paddingHorizontal: 4 },
+  divider: {
+    width: 1,
+    backgroundColor: colors.border,
+    marginVertical: 4,
   },
-  metaValue: {
-    fontFamily: fonts.display,
-    fontStyle: "italic",
-    fontSize: 18,
-    color: colors.foreground,
-    marginTop: 2,
-  },
+  metaKicker: { letterSpacing: 1.5 },
+  metaValue: { marginTop: 2 },
+  metaValueMuted: { color: colors.mutedForeground },
+  metaValueAccent: { color: colors.accent },
 });

@@ -6,4 +6,5 @@ export * from "./wheel";
 export * from "./struggle";
 export * from "./contact";
 export * from "./legal";
+export * from "./legal-content";
 export * from "./schemas";

@@ -27,8 +27,8 @@ Track your streak (with gentle streak protection), weekly progress photos, a 21-
 This app is a personal habit tracker. It is not a medical device and does not provide medical advice.
 
 Support: hello@thefeelgoodsociety.com.au
-Privacy: https://thefeelgoodsociety.com.au/privacy
-Terms: https://thefeelgoodsociety.com.au/terms
+Privacy: https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/legal/privacy.html
+Terms: https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/legal/terms.html
 
 ## Keywords (Apple)
 habits,wellness,challenge,mindset,hydration,fitness,streak,selfcare,routine,feelgood

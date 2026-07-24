@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Confirm your email</title>
+</head>
+<body style="margin:0;padding:0;background-color:#EBE5DD;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#EBE5DD;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:480px;background-color:#F8EFEE;border-radius:28px;overflow:hidden;border:1px solid rgba(34,34,34,0.1);">
+          <tr>
+            <td style="padding:0;position:relative;">
+              <div style="height:8px;background:linear-gradient(90deg,#CCDA18 0%,#E1C340 50%,#F2BDC2 100%);"></div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:36px 32px 40px 32px;font-family:Helvetica,Arial,sans-serif;color:#222222;">
+              <p style="margin:0 0 8px 0;font-size:10px;letter-spacing:2.4px;text-transform:uppercase;color:#6B6560;font-weight:600;">
+                The Feel Good Challenge
+              </p>
+              <h1 style="margin:0 0 16px 0;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:700;font-size:28px;line-height:1.2;color:#222222;">
+                Confirm your email
+              </h1>
+              <p style="margin:0 0 24px 0;font-size:15px;line-height:1.55;color:#6B6560;">
+                Welcome. Tap below to confirm your email and start your 55 days.
+              </p>
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 28px 0;">
+                <tr>
+                  <td align="center" style="border-radius:999px;background-color:#222222;">
+                    <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;font-family:Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:#F8EFEE;text-decoration:none;letter-spacing:0.02em;">
+                      Confirm email
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 8px 0;font-size:12px;line-height:1.5;color:#6B6560;">
+                If the button does not work, copy and paste this link into your browser:
+              </p>
+              <p style="margin:0 0 28px 0;font-size:12px;line-height:1.5;word-break:break-all;color:#222222;">
+                {{ .ConfirmationURL }}
+              </p>
+              <p style="margin:0;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#6B6560;text-align:center;">
+                We do good things here
+              </p>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:20px 0 0 0;font-family:Helvetica,Arial,sans-serif;font-size:11px;color:#6B6560;max-width:480px;">
+          If you did not create an account, you can ignore this email.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

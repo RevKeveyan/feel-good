@@ -133,6 +133,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_path: string | null
           challenge_start_date: string
           created_at: string
           display_name: string | null
@@ -142,6 +143,7 @@ export type Database = {
           water_target_ml: number
         }
         Insert: {
+          avatar_path?: string | null
           challenge_start_date?: string
           created_at?: string
           display_name?: string | null
@@ -151,6 +153,7 @@ export type Database = {
           water_target_ml?: number
         }
         Update: {
+          avatar_path?: string | null
           challenge_start_date?: string
           created_at?: string
           display_name?: string | null

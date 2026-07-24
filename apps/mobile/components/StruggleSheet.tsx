@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Alert, Modal, Pressable, StyleSheet, Text, View, Linking } from "react-native";
+import { Alert, Modal, Pressable, StyleSheet, View, Linking } from "react-native";
 import { STRUGGLE_QUOTES, STRUGGLE_REFRAMES, pickRandom, type StruggleAction } from "@feelgood/shared";
 import { CONTACT_EMAIL, todayISO } from "@feelgood/shared";
 import { supabase } from "@/lib/supabase";
-import { Body, DisplayTitle } from "@/components/ui";
-import { colors, fonts, radius } from "@/src/theme";
+import { Body, DisplayTitle, Label } from "@/components/ui";
+import { colors, radius } from "@/src/theme";
 
 type ViewState =
   | { kind: "menu" }
@@ -75,23 +75,25 @@ export function StruggleSheet({ visible, onClose }: { visible: boolean; onClose:
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.sheet}>
-          <DisplayTitle style={{ fontSize: 24, marginBottom: 12 }}>Hard day?</DisplayTitle>
+          <DisplayTitle size="sm" style={{ marginBottom: 12 }}>
+            Hard day?
+          </DisplayTitle>
           {view.kind === "menu" &&
             ACTIONS.map((a) => (
               <Pressable key={a.action} style={styles.option} onPress={() => void handle(a.action)}>
-                <Text style={styles.optionTitle}>{a.title}</Text>
+                <Label>{a.title}</Label>
                 <Body>{a.subtitle}</Body>
               </Pressable>
             ))}
           {view.kind === "breathwork" && (
             <View style={styles.center}>
-              <Text style={styles.big}>{seconds}</Text>
+              <DisplayTitle size="xl">{seconds}</DisplayTitle>
               <Body>Breathe in · hold · out · pause</Body>
             </View>
           )}
           {view.kind === "text" && (
             <View>
-              <Text style={styles.optionTitle}>{view.title}</Text>
+              <Label>{view.title}</Label>
               <Body style={{ marginTop: 8 }}>{view.body}</Body>
             </View>
           )}
@@ -99,7 +101,7 @@ export function StruggleSheet({ visible, onClose }: { visible: boolean; onClose:
             onPress={view.kind === "menu" ? onClose : () => setView({ kind: "menu" })}
             style={{ marginTop: 16 }}
           >
-            <Text style={styles.cancel}>{view.kind === "menu" ? "Close" : "Back"}</Text>
+            <Body style={styles.cancel}>{view.kind === "menu" ? "Close" : "Back"}</Body>
           </Pressable>
         </View>
       </View>
@@ -120,18 +122,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  optionTitle: { fontFamily: fonts.sansSemi, color: colors.foreground },
   center: { alignItems: "center", paddingVertical: 24 },
-  big: {
-    fontFamily: fonts.display,
-    fontStyle: "italic",
-    fontSize: 48,
-    color: colors.foreground,
-    marginBottom: 8,
-  },
   cancel: {
     textAlign: "center",
-    fontFamily: fonts.sans,
-    color: colors.mutedForeground,
   },
 });
