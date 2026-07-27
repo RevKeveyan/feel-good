@@ -25,7 +25,7 @@ import {
 } from "@feelgood/shared";
 import { supabase } from "@/lib/supabase";
 import { alertMediaPermissionNeeded } from "@/lib/media-permissions";
-import { cacheBustUrl, guessImageContentType, uploadLocalImage } from "@/lib/upload-image";
+import { cacheBustUrl, extensionForContentType, formatUploadError, guessImageContentType, uploadLocalImage } from "@/lib/upload-image";
 import {
   GradientArea,
   PromptField,
@@ -179,7 +179,7 @@ export default function OnboardingScreen() {
     void saveResponses({ goals: nextGoals });
   }
 
-  async function pickVisionLibraryUri() {
+  async function pickVisionLibraryAsset() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       alertMediaPermissionNeeded("Photo library access is required for your vision board.");
@@ -190,7 +190,24 @@ export default function OnboardingScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
     });
     if (result.canceled || !result.assets[0]) return null;
-    return result.assets[0].uri;
+    const asset = result.assets[0];
+    const mimeType =
+      asset.mimeType?.trim() ||
+      guessImageContentType(asset.fileName ?? asset.uri);
+    return {
+      uri: asset.uri,
+      mimeType,
+      fileName: asset.fileName ?? null,
+    };
+  }
+
+  function visionStoragePath(userId: string, mimeType: string, fileName: string | null) {
+    const fromName = fileName?.split(".").pop()?.toLowerCase();
+    const ext =
+      fromName && /^[a-z0-9]+$/.test(fromName)
+        ? fromName
+        : extensionForContentType(mimeType);
+    return `${userId}/${Date.now()}.${ext}`;
   }
 
   async function uploadVisionImage() {
@@ -199,27 +216,27 @@ export default function OnboardingScreen() {
       Alert.alert("Limit reached", "You can add up to 8 vision board images.");
       return;
     }
-    const uri = await pickVisionLibraryUri();
-    if (!uri) return;
-    const path = `${uid}/${Date.now()}.jpg`;
+    const asset = await pickVisionLibraryAsset();
+    if (!asset) return;
+    const path = visionStoragePath(uid, asset.mimeType, asset.fileName);
     setVisionUploading(true);
     try {
       await uploadLocalImage({
         bucket: "vision-board",
         path,
-        uri,
-        contentType: guessImageContentType(uri),
+        uri: asset.uri,
+        contentType: asset.mimeType,
       });
       const { error } = await supabase
         .from("vision_board_items")
         .insert({ user_id: uid, storage_path: path, sort_order: Date.now() });
       if (error) {
         await supabase.storage.from("vision-board").remove([path]);
-        throw error;
+        throw new Error(error.message || "Could not save vision board item");
       }
       await loadVision(uid);
     } catch (e) {
-      Alert.alert("Upload failed", e instanceof Error ? e.message : "Something went wrong");
+      Alert.alert("Upload failed", formatUploadError(e));
     } finally {
       setVisionUploading(false);
     }
@@ -227,16 +244,16 @@ export default function OnboardingScreen() {
 
   async function replaceVisionItem(item: VisionItem) {
     if (!uid || visionUploading) return;
-    const uri = await pickVisionLibraryUri();
-    if (!uri) return;
-    const path = `${uid}/${Date.now()}.jpg`;
+    const asset = await pickVisionLibraryAsset();
+    if (!asset) return;
+    const path = visionStoragePath(uid, asset.mimeType, asset.fileName);
     setVisionUploading(true);
     try {
       await uploadLocalImage({
         bucket: "vision-board",
         path,
-        uri,
-        contentType: guessImageContentType(uri),
+        uri: asset.uri,
+        contentType: asset.mimeType,
       });
       const { error } = await supabase
         .from("vision_board_items")
@@ -245,14 +262,14 @@ export default function OnboardingScreen() {
         .eq("user_id", uid);
       if (error) {
         await supabase.storage.from("vision-board").remove([path]);
-        throw error;
+        throw new Error(error.message || "Could not update vision board item");
       }
       if (item.storage_path !== path) {
         await supabase.storage.from("vision-board").remove([item.storage_path]);
       }
       await loadVision(uid);
     } catch (e) {
-      Alert.alert("Replace failed", e instanceof Error ? e.message : "Something went wrong");
+      Alert.alert("Replace failed", formatUploadError(e));
     } finally {
       setVisionUploading(false);
     }

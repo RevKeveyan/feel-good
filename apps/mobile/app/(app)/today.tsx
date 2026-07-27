@@ -38,7 +38,7 @@ import { supabase } from "@/lib/supabase";
 import { resolveAvatarUrl } from "@/lib/avatar";
 import { alertMediaPermissionNeeded } from "@/lib/media-permissions";
 import { enqueueUpsert, flushOfflineQueue } from "@/lib/offline-queue";
-import { cacheBustUrl, guessImageContentType, uploadLocalImage } from "@/lib/upload-image";
+import { cacheBustUrl, extensionForContentType, formatUploadError, guessImageContentType, uploadLocalImage } from "@/lib/upload-image";
 import { StruggleSheet } from "@/components/StruggleSheet";
 import {
   Body,
@@ -237,13 +237,15 @@ export default function TodayScreen() {
     setUploadingPhoto(true);
     try {
       const weekNum = currentWeek(profile.challenge_start_date);
-      const path = `${auth.user.id}/week-${weekNum}-${Date.now()}.jpg`;
-      const uri = result.assets[0].uri;
+      const asset = result.assets[0];
+      const mimeType = asset.mimeType?.trim() || guessImageContentType(asset.fileName ?? asset.uri);
+      const ext = extensionForContentType(mimeType);
+      const path = `${auth.user.id}/week-${weekNum}-${Date.now()}.${ext}`;
       await uploadLocalImage({
         bucket: "weekly-photos",
         path,
-        uri,
-        contentType: guessImageContentType(uri),
+        uri: asset.uri,
+        contentType: mimeType,
         upsert: true,
       });
 
@@ -255,14 +257,14 @@ export default function TodayScreen() {
         { user_id: auth.user.id, week_number: weekNum, storage_path: path },
         { onConflict: "user_id,week_number" },
       );
-      if (error) throw error;
+      if (error) throw new Error(error.message || "Could not save weekly photo");
 
       setPhotoStoragePath(path);
       const { data: signed } = await supabase.storage.from("weekly-photos").createSignedUrl(path, 3600);
       setPhotoUrl(cacheBustUrl(signed?.signedUrl) ?? null);
       Alert.alert("Saved", `Week ${weekNum} photo saved`);
     } catch (e) {
-      Alert.alert("Upload failed", e instanceof Error ? e.message : "Something went wrong");
+      Alert.alert("Upload failed", formatUploadError(e));
     } finally {
       setUploadingPhoto(false);
     }

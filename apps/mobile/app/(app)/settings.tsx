@@ -25,7 +25,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { resolveAvatarUrl } from "@/lib/avatar";
 import { alertMediaPermissionNeeded } from "@/lib/media-permissions";
-import { guessImageContentType, uploadLocalImage } from "@/lib/upload-image";
+import { extensionForContentType, formatUploadError, guessImageContentType, uploadLocalImage } from "@/lib/upload-image";
 import {
   Body,
   BrandCard,
@@ -170,13 +170,15 @@ export default function SettingsScreen() {
 
     setUploading(true);
     try {
-      const path = `${auth.user.id}/avatar.jpg`;
-      const uri = result.assets[0].uri;
+      const asset = result.assets[0];
+      const mimeType = asset.mimeType?.trim() || guessImageContentType(asset.fileName ?? asset.uri);
+      const ext = extensionForContentType(mimeType);
+      const path = `${auth.user.id}/avatar.${ext}`;
       await uploadLocalImage({
         bucket: "avatars",
         path,
-        uri,
-        contentType: guessImageContentType(uri),
+        uri: asset.uri,
+        contentType: mimeType,
         upsert: true,
       });
 
@@ -184,13 +186,13 @@ export default function SettingsScreen() {
         .from("profiles")
         .update({ avatar_path: path })
         .eq("id", auth.user.id);
-      if (error) throw error;
+      if (error) throw new Error(error.message || "Could not save profile photo");
 
       setProfile((prev) => (prev ? { ...prev, avatar_path: path } : prev));
       setAvatarUrl(await resolveAvatarUrl({ avatarPath: path, user: auth.user }));
       Alert.alert("Saved", "Profile photo updated.");
     } catch (e) {
-      Alert.alert("Upload failed", e instanceof Error ? e.message : "Something went wrong");
+      Alert.alert("Upload failed", formatUploadError(e));
     } finally {
       setUploading(false);
     }
@@ -228,7 +230,7 @@ export default function SettingsScreen() {
               <Body>
                 {avatarUrl
                   ? "Change photo to replace your current avatar"
-                  : "Upload a photo, or keep your Google picture if you signed in with Google"}
+                  : "Upload a photo for your profile"}
               </Body>
             </View>
           </View>
