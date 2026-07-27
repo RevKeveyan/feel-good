@@ -12,6 +12,7 @@ import { Redirect, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import {
+  GOOGLE_SIGN_IN_ENABLED,
   getLastOAuthRedirectParam,
   getOAuthRedirectTo,
   requestPasswordReset,
@@ -94,7 +95,11 @@ export default function AuthScreen() {
       }
       if (mode === "signup") {
         await signUpWithEmail(email.trim(), password, name.trim());
-        Alert.alert("Welcome, check your inbox to confirm your email.");
+        Alert.alert(
+          "Confirm your email",
+          "We sent a confirmation link. Open it, then Sign in with your email and password.",
+          [{ text: "OK", onPress: () => setMode("signin") }],
+        );
       } else {
         await signInWithEmail(email.trim(), password);
         trackEvent("auth_sign_in", { method: "email" });
@@ -165,7 +170,7 @@ export default function AuthScreen() {
           <DisplayTitle style={styles.title}>{title}</DisplayTitle>
         </View>
 
-        {mode !== "forgot" && (
+        {GOOGLE_SIGN_IN_ENABLED && mode !== "forgot" && (
           <>
             <OutlineButton label="Continue with Google" onPress={handleGoogle} disabled={loading} />
 

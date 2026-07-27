@@ -91,16 +91,27 @@ export async function completeSessionFromUrl(url: string) {
 
 export async function signInWithEmail(email: string, password: string) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw error;
+  if (error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes("email not confirmed") || msg.includes("not confirmed")) {
+      throw new Error("Confirm your email first, then Sign in. Check your inbox for the confirmation link.");
+    }
+    throw error;
+  }
 }
 
 export async function signUpWithEmail(email: string, password: string, displayName: string) {
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: { data: { display_name: displayName } },
   });
   if (error) throw error;
+
+  const confirmedAt = data.user?.email_confirmed_at ?? data.user?.confirmed_at;
+  if (data.session && !confirmedAt) {
+    await supabase.auth.signOut();
+  }
 }
 
 export async function requestPasswordReset(email: string) {
@@ -171,7 +182,12 @@ async function openAuthSessionWithLinkingFallback(authUrl: string, redirectTo: s
   }
 }
 
+export const GOOGLE_SIGN_IN_ENABLED = false;
+
 export async function signInWithGoogle() {
+  if (!GOOGLE_SIGN_IN_ENABLED) {
+    throw new Error("Google Sign In is disabled");
+  }
   const oauthRedirectTo = OAUTH_CALLBACK_URL;
   lastOAuthRedirectTo = oauthRedirectTo;
   lastOAuthRedirectParam = null;
