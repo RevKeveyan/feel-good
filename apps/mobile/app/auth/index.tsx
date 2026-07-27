@@ -252,8 +252,6 @@ export default function AuthScreen() {
             <Kicker style={styles.legalLink}>Terms of Service</Kicker>
           </Pressable>
         </View>
-
-        <Kicker style={styles.tagline}>WE DO GOOD THINGS HERE</Kicker>
       </View>
     </SafeAreaView>
   );
@@ -314,9 +312,4 @@ const styles = StyleSheet.create({
   },
   legalLink: { letterSpacing: 1.5 },
   legalSep: { color: colors.mutedForeground },
-  tagline: {
-    marginTop: 16,
-    textAlign: "center",
-    letterSpacing: 3,
-  },
 });
