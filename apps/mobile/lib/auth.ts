@@ -130,6 +130,23 @@ export async function verifyRecoveryOtp(email: string, token: string) {
   if (error) throw error;
 }
 
+export async function verifySignupOtp(email: string, token: string) {
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token: token.trim(),
+    type: "signup",
+  });
+  if (error) throw error;
+}
+
+export async function resendSignupConfirmation(email: string) {
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email: email.trim(),
+  });
+  if (error) throw error;
+}
+
 export async function updatePassword(newPassword: string) {
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw error;

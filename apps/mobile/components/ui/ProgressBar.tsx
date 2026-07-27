@@ -1,7 +1,6 @@
 import { StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { colors, radius } from "@/src/theme";
-import { gradients } from "@/src/theme";
+import { colors, radius, gradients } from "@/src/theme";
 
 type Props = {
   progress: number;

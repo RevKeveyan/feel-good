@@ -11,7 +11,7 @@ config.watchFolders = [sharedRoot];
 
 config.resolver.nodeModulesPaths = [mobileNodeModules];
 config.resolver.extraNodeModules = {
-  ...(config.resolver.extraNodeModules ?? {}),
+  ...config.resolver.extraNodeModules,
   "@feelgood/shared": sharedRoot,
   "@babel/runtime": path.resolve(mobileNodeModules, "@babel/runtime"),
 };

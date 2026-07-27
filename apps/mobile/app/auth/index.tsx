@@ -16,9 +16,11 @@ import {
   getLastOAuthRedirectParam,
   getOAuthRedirectTo,
   requestPasswordReset,
+  resendSignupConfirmation,
   signInWithEmail,
   signInWithGoogle,
   signUpWithEmail,
+  verifySignupOtp,
 } from "@/lib/auth";
 import { trackEvent } from "@/lib/analytics";
 import {
@@ -33,13 +35,14 @@ import {
 } from "@/components/ui";
 import { colors, fonts, radius, space } from "@/src/theme";
 
-type AuthMode = "signin" | "signup" | "forgot";
+type AuthMode = "signin" | "signup" | "forgot" | "confirm";
 
 export default function AuthScreen() {
   const [mode, setMode] = useState<AuthMode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [confirmCode, setConfirmCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [session, setSession] = useState<boolean | null>(null);
   const [passwordRecovery, setPasswordRecovery] = useState(false);
@@ -66,7 +69,9 @@ export default function AuthScreen() {
   }
 
   if (passwordRecovery) return <Redirect href="/auth/reset" />;
-  if (session && mode !== "forgot") return <Redirect href="/(app)/today" />;
+  if (session && mode !== "forgot" && mode !== "confirm") {
+    return <Redirect href="/(app)/today" />;
+  }
 
   async function handleEmail() {
     setLoading(true);
@@ -94,19 +99,64 @@ export default function AuthScreen() {
         return;
       }
       if (mode === "signup") {
+        if (!email.trim() || !password) {
+          Alert.alert("Missing details", "Enter your email and password.");
+          return;
+        }
         await signUpWithEmail(email.trim(), password, name.trim());
+        setConfirmCode("");
+        setMode("confirm");
         Alert.alert(
-          "Confirm your email",
-          "We sent a confirmation link. Open it, then Sign in with your email and password.",
-          [{ text: "OK", onPress: () => setMode("signin") }],
+          "Check your inbox",
+          "We sent a one-time code. Enter it below to confirm your email.",
         );
-      } else {
-        await signInWithEmail(email.trim(), password);
-        trackEvent("auth_sign_in", { method: "email" });
-        router.replace("/(app)/today");
+        return;
       }
+      await signInWithEmail(email.trim(), password);
+      trackEvent("auth_sign_in", { method: "email" });
+      router.replace("/(app)/today");
     } catch (e) {
       Alert.alert("Error", e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleConfirmCode() {
+    const trimmedEmail = email.trim();
+    const trimmedCode = confirmCode.trim();
+    if (!trimmedEmail) {
+      Alert.alert("Email required", "Enter the email for your account.");
+      return;
+    }
+    if (!trimmedCode) {
+      Alert.alert("Code required", "Enter the one-time code from your email.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await verifySignupOtp(trimmedEmail, trimmedCode);
+      trackEvent("auth_sign_in", { method: "email_confirm" });
+      router.replace("/(app)/today");
+    } catch (e) {
+      Alert.alert("Invalid code", e instanceof Error ? e.message : "Could not verify code");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResendConfirm() {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      Alert.alert("Email required", "Enter the email for your account.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await resendSignupConfirmation(trimmedEmail);
+      Alert.alert("Code sent", "Check your inbox for a new one-time code.");
+    } catch (e) {
+      Alert.alert("Error", e instanceof Error ? e.message : "Could not resend code");
     } finally {
       setLoading(false);
     }
@@ -152,13 +202,21 @@ export default function AuthScreen() {
   }
 
   const title =
-    mode === "forgot" ? "Reset password" : mode === "signin" ? "Sign in" : "Start your 55 days";
+    mode === "forgot"
+      ? "Reset password"
+      : mode === "confirm"
+        ? "Enter confirm code"
+        : mode === "signin"
+          ? "Sign in"
+          : "Start your 55 days";
   const kicker =
     mode === "forgot"
       ? "We'll email you a one-time code"
-      : mode === "signin"
-        ? "Welcome back"
-        : "Join the challenge";
+      : mode === "confirm"
+        ? "Check your inbox"
+        : mode === "signin"
+          ? "Welcome back"
+          : "Join the challenge";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -170,7 +228,7 @@ export default function AuthScreen() {
           <DisplayTitle style={styles.title}>{title}</DisplayTitle>
         </View>
 
-        {GOOGLE_SIGN_IN_ENABLED && mode !== "forgot" && (
+        {GOOGLE_SIGN_IN_ENABLED && mode !== "forgot" && mode !== "confirm" && (
           <>
             <OutlineButton label="Continue with Google" onPress={handleGoogle} disabled={loading} />
 
@@ -200,8 +258,20 @@ export default function AuthScreen() {
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
+          editable={mode !== "confirm" || !email}
         />
-        {mode !== "forgot" && (
+        {mode === "confirm" && (
+          <TextInput
+            style={styles.input}
+            placeholder="One-time code"
+            placeholderTextColor={colors.mutedForeground}
+            value={confirmCode}
+            onChangeText={setConfirmCode}
+            autoCapitalize="none"
+            keyboardType="number-pad"
+          />
+        )}
+        {mode !== "forgot" && mode !== "confirm" && (
           <TextInput
             style={styles.input}
             placeholder="Password"
@@ -220,28 +290,53 @@ export default function AuthScreen() {
           </Pressable>
         )}
 
-        <PrimaryButton
-          label={
-            mode === "forgot" ? "Send reset code" : mode === "signin" ? "Sign in" : "Create account"
-          }
-          onPress={handleEmail}
-          loading={loading}
-          style={{ marginTop: 8 }}
-        />
+        {mode === "confirm" ? (
+          <>
+            <PrimaryButton
+              label="Confirm email"
+              onPress={handleConfirmCode}
+              loading={loading}
+              style={{ marginTop: 8 }}
+            />
+            <Pressable onPress={handleResendConfirm} disabled={loading}>
+              <Body style={styles.switchText}>
+                Didn’t get it? <Label style={styles.switchLink}>Resend code</Label>
+              </Body>
+            </Pressable>
+          </>
+        ) : (
+          <PrimaryButton
+            label={
+              mode === "forgot" ? "Send reset code" : mode === "signin" ? "Sign in" : "Create account"
+            }
+            onPress={handleEmail}
+            loading={loading}
+            style={{ marginTop: 8 }}
+          />
+        )}
 
         <Pressable
-          onPress={() =>
-            setMode(mode === "signin" ? "signup" : mode === "signup" ? "signin" : "signin")
-          }
+          onPress={() => {
+            if (mode === "confirm") {
+              setMode("signin");
+              setConfirmCode("");
+              return;
+            }
+            setMode(mode === "signin" ? "signup" : mode === "signup" ? "signin" : "signin");
+          }}
         >
           <Body style={styles.switchText}>
             {mode === "forgot"
               ? "Remembered it? "
-              : mode === "signin"
-                ? "New here? "
-                : "Already have an account? "}
+              : mode === "confirm"
+                ? "Already confirmed? "
+                : mode === "signin"
+                  ? "New here? "
+                  : "Already have an account? "}
             <Label style={styles.switchLink}>
-              {mode === "forgot" ? "Sign in" : mode === "signin" ? "Create an account" : "Sign in"}
+              {mode === "forgot" || mode === "confirm" || mode === "signup"
+                ? "Sign in"
+                : "Create an account"}
             </Label>
           </Body>
         </Pressable>

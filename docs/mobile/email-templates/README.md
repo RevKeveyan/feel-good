@@ -16,8 +16,8 @@ Supabase sends these emails — the app cannot ship email HTML by itself.
 
 | File | Dashboard template |
 |------|-------------------|
-| [`confirm-signup.html`](./confirm-signup.html) | **Confirm signup** |
-| [`reset-password.html`](./reset-password.html) | **Reset password** |
+| [`confirm-signup.html`](./confirm-signup.html) | **Confirm signup** (`{{ .Token }}` OTP) |
+| [`reset-password.html`](./reset-password.html) | **Reset password** (`{{ .Token }}` OTP) |
 
 ## Subjects (recommended)
 

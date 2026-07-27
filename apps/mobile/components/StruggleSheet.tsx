@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Alert, Modal, Pressable, StyleSheet, View, Linking } from "react-native";
-import { STRUGGLE_QUOTES, STRUGGLE_REFRAMES, pickRandom, type StruggleAction } from "@feelgood/shared";
-import { CONTACT_EMAIL, todayISO } from "@feelgood/shared";
+import { STRUGGLE_QUOTES, STRUGGLE_REFRAMES, pickRandom, CONTACT_EMAIL, todayISO, type StruggleAction } from "@feelgood/shared";
 import { supabase } from "@/lib/supabase";
 import { Body, DisplayTitle, Label } from "@/components/ui";
 import { colors, radius } from "@/src/theme";

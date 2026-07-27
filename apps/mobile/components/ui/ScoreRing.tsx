@@ -1,7 +1,7 @@
 import { StyleSheet, View } from "react-native";
 import { CheckCircle2 } from "@/components/ui/icons";
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from "react-native-svg";
-import { Body, DisplayTitle, Kicker, StatValue } from "./Typography";
+import { DisplayTitle, Kicker, StatValue } from "./Typography";
 import { colors } from "@/src/theme";
 
 type Props = {
