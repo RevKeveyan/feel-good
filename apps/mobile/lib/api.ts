@@ -1,6 +1,5 @@
 import { supabase } from "./supabase";
-import type { SubmitTestimonialInput } from "@feelgood/shared";
-import { validateTestimonial } from "@feelgood/shared";
+import { validateTestimonial, type SubmitTestimonialInput } from "@feelgood/shared";
 
 export async function submitTestimonial(input: SubmitTestimonialInput) {
   const validationError = validateTestimonial(input);
