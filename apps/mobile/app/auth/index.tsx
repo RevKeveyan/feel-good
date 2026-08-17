@@ -39,7 +39,7 @@ import {
   PrimaryButton,
   SoftOrbs,
 } from "@/components/ui";
-import { KeyboardAccessoryBar, KeyboardScreen } from "@/components/KeyboardScreen";
+import { KeyboardScreen } from "@/components/KeyboardScreen";
 import { borders, colors, fonts, radius, space, typeScale } from "@/src/theme";
 
 type AuthMode = "signin" | "signup" | "forgot" | "confirm";
@@ -53,6 +53,7 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [session, setSession] = useState<boolean | null>(null);
   const [passwordRecovery, setPasswordRecovery] = useState(false);
+  const emailRef = useRef<TextInputType>(null);
   const passwordRef = useRef<TextInputType>(null);
   const confirmCodeRef = useRef<TextInputType>(null);
 
@@ -276,20 +277,12 @@ export default function AuthScreen() {
         : mode === "signin"
           ? "Sign in"
           : "Create account";
-  const primaryAction = mode === "confirm" ? handleConfirmCode : handleEmail;
 
   return (
     <KeyboardScreen
       style={styles.container}
       contentContainerStyle={styles.scrollInner}
       background={<SoftOrbs />}
-      accessory={
-        <KeyboardAccessoryBar
-          primaryLabel={primaryLabel}
-          onPrimaryPress={primaryAction}
-          primaryDisabled={loading}
-        />
-      }
     >
       <View style={styles.content}>
         <BrandWordmark size="md" />
@@ -337,9 +330,11 @@ export default function AuthScreen() {
             autoCapitalize="words"
             returnKeyType="next"
             blurOnSubmit={false}
+            onSubmitEditing={() => emailRef.current?.focus()}
           />
         )}
         <TextInput
+          ref={emailRef}
           style={styles.input}
           placeholder="Email"
           placeholderTextColor={colors.mutedForeground}

@@ -25,7 +25,7 @@ import {
   PrimaryButton,
   SoftOrbs,
 } from "@/components/ui";
-import { KeyboardAccessoryBar, KeyboardScreen } from "@/components/KeyboardScreen";
+import { KeyboardScreen } from "@/components/KeyboardScreen";
 import { borders, colors, fonts, radius, space, typeScale } from "@/src/theme";
 
 const MIN_PASSWORD = 6;
@@ -149,21 +149,11 @@ export default function ResetPasswordScreen() {
     }
   }
 
-  const accessoryLabel = step === "code" ? "Verify code" : "Update password";
-  const accessoryAction = step === "code" ? handleVerifyCode : handleSubmitPassword;
-
   return (
     <KeyboardScreen
       style={styles.container}
       contentContainerStyle={styles.scrollInner}
       background={<SoftOrbs />}
-      accessory={
-        <KeyboardAccessoryBar
-          primaryLabel={accessoryLabel}
-          onPrimaryPress={accessoryAction}
-          primaryDisabled={loading}
-        />
-      }
     >
       <View style={styles.content}>
         <BrandWordmark size="md" />

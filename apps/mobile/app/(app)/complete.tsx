@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Image,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
@@ -12,7 +11,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { ArrowRight, Check, Lock } from "@/components/ui/icons";
 import {
@@ -45,7 +43,6 @@ import {
   Screen,
   StatValue,
 } from "@/components/ui";
-import { KeyboardAccessoryBar } from "@/components/KeyboardScreen";
 import {
   borders,
   colors,
@@ -111,7 +108,6 @@ export default function CompleteScreen() {
   const shifts = useMemo(() => biggestShifts(day1, day55), [day1, day55]);
   const fullDays = completedDaysCount(entries);
   const displayName = profile?.display_name?.split(/\s+/)[0] || "you";
-  const insets = useSafeAreaInsets();
 
   if (day < CHALLENGE_LENGTH) {
     return (
@@ -232,6 +228,7 @@ export default function CompleteScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
       >
         <GradientCard
           colorsStops={gradients.completeSoft}
@@ -323,23 +320,13 @@ export default function CompleteScreen() {
   );
 
   return (
-    <View style={styles.root}>
-      <Screen>
-        {Platform.OS === "ios" ? (
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={insets.top}>
-            {completeScroll}
-          </KeyboardAvoidingView>
-        ) : (
-          completeScroll
-        )}
-      </Screen>
-      <KeyboardAccessoryBar primaryLabel="Submit review" onPrimaryPress={sendReview} />
-    </View>
+    <Screen>
+      {completeScroll}
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   container: { paddingTop: space.lg, paddingBottom: 48 },
   title: { marginTop: space.sm, marginBottom: space.sm },

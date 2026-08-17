@@ -3,6 +3,7 @@ import {
   Alert,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,7 +16,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { Camera, CheckCircle2, Flame, Heart, Lock } from "@/components/ui/icons";
-import { KeyboardAccessoryBar } from "@/components/KeyboardScreen";
 import {
   CHALLENGE_LENGTH,
   MOVE_TYPES,
@@ -698,6 +698,7 @@ function MoveModal({
           contentContainerStyle={styles.modalCardInner}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
         >
           <View style={styles.moveHeader}>
             <DisplayTitle size="sm" style={styles.moveTitle}>
@@ -742,7 +743,6 @@ function MoveModal({
             style={styles.moveSave}
           />
         </ScrollView>
-        <KeyboardAccessoryBar />
       </View>
     </Modal>
   );
@@ -823,6 +823,7 @@ function CheckInModal({
           contentContainerStyle={styles.modalCard}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
         >
           <DisplayTitle size="sm" style={styles.modalTitle}>
             Daily check-in
@@ -863,21 +864,6 @@ function CheckInModal({
             <Body style={styles.modalCancel}>Cancel</Body>
           </Pressable>
         </ScrollView>
-        <KeyboardAccessoryBar
-          primaryLabel="Submit now"
-          onPrimaryPress={() => {
-            if (!ready) return;
-            void onSave({
-              energy,
-              mood,
-              stress,
-              motivation,
-              sleep_quality: sleep,
-              notes: notes || null,
-            });
-          }}
-          primaryDisabled={!ready}
-        />
       </View>
     </Modal>
   );

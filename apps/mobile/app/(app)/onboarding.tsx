@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   Alert,
-  Keyboard,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
@@ -16,7 +14,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { ArrowLeft, ArrowRight, Check, Lock, Sparkles } from "@/components/ui/icons";
 import { router } from "expo-router";
-import { KeyboardAccessoryBar } from "@/components/KeyboardScreen";
 import { VisionBoardGrid } from "@/components/VisionBoardGrid";
 import {
   GOAL_OPTIONS,
@@ -260,7 +257,7 @@ export default function OnboardingScreen() {
         showsVerticalScrollIndicator={step === "vision"}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        onScrollBeginDrag={Keyboard.dismiss}
+        automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
       >
         <Kicker style={styles.pageKicker}>The Feel Good Challenge · Onboarding</Kicker>
         <View style={styles.progressRow}>
@@ -571,22 +568,7 @@ export default function OnboardingScreen() {
   return (
     <View style={styles.root}>
       <StepToneBackground step={step} />
-      {Platform.OS === "ios" ? (
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior="padding"
-          keyboardVerticalOffset={insets.top}
-        >
-          {scrollBody}
-        </KeyboardAvoidingView>
-      ) : (
-        scrollBody
-      )}
-      <KeyboardAccessoryBar
-        primaryLabel={ctaLabel}
-        onPrimaryPress={next}
-        primaryDisabled={ctaDisabled}
-      />
+      {scrollBody}
     </View>
   );
 }
