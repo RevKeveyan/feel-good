@@ -816,7 +816,8 @@ function ShareTransformation() {
     try {
       await navigator.clipboard.writeText(summary);
       toast.success("Copied to clipboard");
-    } catch {
+    } catch (err) {
+      console.error("clipboard write failed", err);
       toast.error("Couldn't copy");
     }
   }
@@ -861,8 +862,19 @@ function ShareTransformation() {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4" onClick={() => setOpen(false)}>
-          <div className="w-full max-w-sm rounded-3xl bg-card p-6 ring-1 ring-black/5" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50"
+            aria-label="Close share dialog"
+            onClick={() => setOpen(false)}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Share your transformation"
+            className="relative z-10 w-full max-w-sm rounded-3xl bg-card p-6 ring-1 ring-black/5"
+          >
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Share</p>
             <h4 className="font-display italic text-2xl mb-4">Your 55 days</h4>
             <pre className="whitespace-pre-wrap text-sm text-muted-foreground bg-muted/40 rounded-2xl p-4 mb-4 font-sans">{summary}</pre>

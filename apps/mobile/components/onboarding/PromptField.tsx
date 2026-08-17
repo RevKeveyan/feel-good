@@ -1,7 +1,17 @@
-import { StyleSheet, TextInput, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { useState } from "react";
+import { StyleSheet, TextInput } from "react-native";
 import { Kicker } from "@/components/ui";
-import { colors, fonts, gradients, radius } from "@/src/theme";
+import {
+  borders,
+  colors,
+  fonts,
+  gradients,
+  radius,
+  space,
+  typeScale,
+  withAlpha,
+} from "@/src/theme";
+import { DiagonalGradient } from "./DiagonalGradient";
 
 type Props = {
   label: string;
@@ -13,6 +23,8 @@ type Props = {
   minHeight?: number;
 };
 
+const TWO_ROWS = 46;
+
 export function PromptField({
   label,
   value,
@@ -20,63 +32,62 @@ export function PromptField({
   onBlur,
   placeholder = "Type your answer…",
   multiline = false,
-  minHeight = 48,
+  minHeight = TWO_ROWS,
 }: Props) {
+  const [focused, setFocused] = useState(false);
   const filled = value.trim().length > 0;
+
   return (
-    <View
-      style={[
-        styles.wrap,
-        filled ? styles.wrapFilled : null,
-      ]}
+    <DiagonalGradient
+      colorsStops={focused ? gradients.promptFieldFocus : gradients.promptField}
+      style={[styles.wrap, filled ? styles.wrapFilled : null]}
+      contentStyle={styles.content}
     >
-      <LinearGradient
-        colors={filled ? [...gradients.promptFieldFilled] : [...gradients.promptField]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      >
-        <Kicker style={styles.label}>{label}</Kicker>
-        <TextInput
-          style={[
-            styles.input,
-            multiline && { minHeight: Math.max(minHeight, 72), textAlignVertical: "top" },
-          ]}
-          placeholderTextColor={colors.mutedForeground + "80"}
-          placeholder={placeholder}
-          value={value}
-          onChangeText={onChangeText}
-          onBlur={onBlur}
-          multiline={multiline}
-        />
-      </LinearGradient>
-    </View>
+      <Kicker style={styles.label}>{label}</Kicker>
+      <TextInput
+        style={[
+          styles.input,
+          multiline && { minHeight: Math.max(minHeight, TWO_ROWS), textAlignVertical: "top" },
+        ]}
+        placeholderTextColor={withAlpha(colors.foreground, 0.3)}
+        placeholder={placeholder}
+        value={value}
+        onChangeText={onChangeText}
+        onFocus={() => setFocused(true)}
+        onBlur={() => {
+          setFocused(false);
+          onBlur?.();
+        }}
+        multiline={multiline}
+        returnKeyType={multiline ? "default" : "done"}
+        blurOnSubmit={!multiline}
+      />
+    </DiagonalGradient>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
     borderRadius: radius["2xl"],
-    borderWidth: 1,
-    borderColor: colors.ringHairline,
     overflow: "hidden",
-    marginBottom: 12,
+    borderWidth: borders.hairline,
+    borderColor: colors.ringHairline,
   },
   wrapFilled: {
-    borderColor: colors.lime + "99",
+    borderColor: withAlpha(colors.lime, 0.5),
   },
-  gradient: {
-    padding: 16,
+  content: {
+    padding: space.lg,
   },
   label: {
-    marginBottom: 8,
-    color: colors.mutedForeground,
+    marginBottom: space.sm,
+    color: withAlpha(colors.foreground, 0.6),
   },
   input: {
     backgroundColor: "transparent",
     fontFamily: fonts.sans,
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: typeScale.input.fontSize,
+    lineHeight: 23,
     color: colors.foreground,
     padding: 0,
     minHeight: 24,

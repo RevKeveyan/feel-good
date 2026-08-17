@@ -18,9 +18,13 @@ Full guide for mobile. Code: `apps/mobile/lib/auth.ts`, `apps/mobile/lib/notific
 
 ## Forgot / reset password
 
-1. Auth (sign in) -> **Forgot password?** -> enter email -> **Send reset link**.
-2. Inbox -> open link (opens app via `auth/reset` deep link).
-3. App -> **Set new password** -> Update -> Today.
+OTP-only flow (email template must use `{{ .Token }}`, not only a link):
+
+1. Auth → **Forgot password?** → email → **Send reset code** → `/auth/reset`.
+2. Enter one-time code → **Verify code** → **Set new password** (do not remount back to code).
+3. **Update password** → Today. Mid-flow **Back to Sign in** signs out (does not open Today).
+
+App gate: while recovery is pending (`isPasswordRecoveryPending`), `/` and `/(app)` redirect to `/auth/reset` so a recovery session cannot skip setting a password.
 
 ### Dashboard (required)
 
@@ -53,9 +57,9 @@ Branded templates: [`email-templates/README.md`](email-templates/README.md).
 
 ## Register + email verify
 
-1. Auth -> Create account -> check email alert.
-2. Confirm from inbox -> Sign in.
-3. Recovery / OAuth deep links use `completeSessionFromUrl` in root layout.
+1. Auth → Create account → check-inbox alert → **confirm** mode (OTP).
+2. Enter code → Today. Unconfirmed sign-in switches to confirm mode (code, not link).
+3. Recovery / OAuth deep links use `completeSessionFromUrl` in root layout; `PASSWORD_RECOVERY` only sets the pending flag (no remount of `/auth/reset`).
 
 ## Google — enable (Dashboard)
 

@@ -1,5 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Image, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { ArrowRight, Check, Lock } from "@/components/ui/icons";
 import {
@@ -32,7 +45,18 @@ import {
   Screen,
   StatValue,
 } from "@/components/ui";
-import { colors, fonts, gradients, radius, space } from "@/src/theme";
+import { KeyboardAccessoryBar } from "@/components/KeyboardScreen";
+import {
+  borders,
+  colors,
+  fonts,
+  gradients,
+  iconSizes,
+  radius,
+  space,
+  typeScale,
+  withAlpha,
+} from "@/src/theme";
 
 export default function CompleteScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -87,32 +111,39 @@ export default function CompleteScreen() {
   const shifts = useMemo(() => biggestShifts(day1, day55), [day1, day55]);
   const fullDays = completedDaysCount(entries);
   const displayName = profile?.display_name?.split(/\s+/)[0] || "you";
+  const insets = useSafeAreaInsets();
 
   if (day < CHALLENGE_LENGTH) {
     return (
       <Screen>
         <View style={styles.center}>
-          <BrandCard style={{ alignItems: "center", width: "100%" }}>
+          <BrandCard style={styles.lockCard}>
             <View style={styles.lockTile}>
-              <Lock size={24} color={colors.primary} strokeWidth={2} />
+              <Lock size={iconSizes.lg} color={colors.primary} strokeWidth={2} />
             </View>
-            <Kicker style={{ marginBottom: 8 }}>Sealed until Day {CHALLENGE_LENGTH}</Kicker>
-            <DisplayTitle style={{ textAlign: "center" }}>Not yet.</DisplayTitle>
-            <Body style={{ textAlign: "center", marginTop: 8, marginBottom: 16 }}>
+            <Kicker style={styles.lockKicker}>Sealed until Day {CHALLENGE_LENGTH}</Kicker>
+            <DisplayTitle style={styles.lockTitle}>Not yet.</DisplayTitle>
+            <Body style={styles.lockBody}>
               Your completion reveal — the before-and-after wheel, your Future You letter, and your transformation — unlocks on Day {CHALLENGE_LENGTH}.
             </Body>
             <View style={styles.dayBox}>
               <Kicker>You&apos;re on</Kicker>
               <StatValue size="lg" style={styles.dayBig}>Day {day}</StatValue>
-              <Body>
+              <Body size="sm">
                 {daysLeft} day{daysLeft === 1 ? "" : "s"} to go.
               </Body>
             </View>
             <PrimaryButton
               label="Back to today"
               onPress={() => router.back()}
-              style={{ width: "100%" }}
-              trailingIcon={<ArrowRight size={16} color={colors.primaryForeground} strokeWidth={2} />}
+              style={styles.lockCta}
+              trailingIcon={
+                <ArrowRight
+                  size={iconSizes.sm}
+                  color={colors.primaryForeground}
+                  strokeWidth={2}
+                />
+              }
             />
           </BrandCard>
         </View>
@@ -150,7 +181,12 @@ export default function CompleteScreen() {
   if (step === "rewheel") {
     return (
       <Screen>
-        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
           <Kicker>Day 55 · Rewheel</Kicker>
           <DisplayTitle size="sm" style={styles.title}>Rate yourself again.</DisplayTitle>
           <Body style={{ marginBottom: space.lg }}>
@@ -190,17 +226,23 @@ export default function CompleteScreen() {
     );
   }
 
-  return (
-    <Screen>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <GradientCard colorsStops={gradients.score} orb>
-          <Kicker>Day 55 · Complete</Kicker>
-          <DisplayTitle size="lg" style={{ marginTop: 4 }}>
+  const completeScroll = (
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        <GradientCard
+          colorsStops={gradients.completeSoft}
+          style={styles.hero}
+          contentStyle={styles.heroContent}
+        >
+          <Kicker style={styles.heroKicker}>Day 55 · Complete</Kicker>
+          <DisplayTitle size="lg" style={styles.heroTitle}>
             You did it, {displayName}.
           </DisplayTitle>
-          <Body style={{ marginTop: 8 }}>
-            55 days. {fullDays} full completions. A different you.
-          </Body>
+          <Body>55 days. {fullDays} full completions. A different you.</Body>
         </GradientCard>
 
         <View style={styles.statsRow}>
@@ -218,10 +260,10 @@ export default function CompleteScreen() {
           </BrandCard>
         </View>
 
-        <Kicker style={{ marginBottom: 8 }}>Before vs after</Kicker>
+        <Kicker style={styles.shiftsKicker}>Before vs after</Kicker>
         <DisplayTitle size="sm" style={styles.section}>Biggest shifts</DisplayTitle>
         {shifts.map((s) => (
-          <BrandCard key={s.key} style={{ marginBottom: 8, padding: 14 }}>
+          <BrandCard key={s.key} style={styles.shiftCard}>
             <Body style={styles.shift}>
               {s.label}: {s.from} → {s.to}
             </Body>
@@ -271,85 +313,122 @@ export default function CompleteScreen() {
         >
           <View style={[styles.checkbox, permissionToPublish && styles.checkboxOn]}>
             {permissionToPublish ? (
-              <Check size={14} color={colors.primaryForeground} strokeWidth={2.5} />
+              <Check size={iconSizes.xs} color={colors.primaryForeground} strokeWidth={2.5} />
             ) : null}
           </View>
           <Body style={{ flex: 1 }}>Allow Feel Good Society to publish my review</Body>
         </Pressable>
         <PrimaryButton label="Submit review" onPress={sendReview} />
       </ScrollView>
-    </Screen>
+  );
+
+  return (
+    <View style={styles.root}>
+      <Screen>
+        {Platform.OS === "ios" ? (
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={insets.top}>
+            {completeScroll}
+          </KeyboardAvoidingView>
+        ) : (
+          completeScroll
+        )}
+      </Screen>
+      <KeyboardAccessoryBar primaryLabel="Submit review" onPrimaryPress={sendReview} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   container: { paddingTop: space.lg, paddingBottom: 48 },
-  title: { marginTop: 8, marginBottom: 8 },
+  title: { marginTop: space.sm, marginBottom: space.sm },
+  lockCard: { alignItems: "center", width: "100%", padding: space.p8 },
   lockTile: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary + "1A",
+    borderRadius: radius.full,
+    backgroundColor: withAlpha(colors.primary, 0.1),
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
+    marginBottom: space.lg,
   },
+  lockKicker: { marginBottom: space.sm },
+  lockTitle: { textAlign: "center", marginBottom: space.md },
+  lockBody: { textAlign: "center", marginBottom: space.p6 },
+  lockCta: { width: "100%", paddingVertical: space.md },
   dayBox: {
     width: "100%",
-    backgroundColor: colors.background,
+    backgroundColor: withAlpha(colors.muted, 0.4),
     borderRadius: radius["2xl"],
-    padding: 16,
+    padding: space.p4,
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: space.p6,
   },
-  dayBig: { marginVertical: 4 },
-  statsRow: { flexDirection: "row", gap: 8, marginVertical: space.lg },
-  statCard: { flex: 1, padding: 12, alignItems: "center" },
+  dayBig: {
+    marginTop: space.xs,
+    marginBottom: space.xs,
+    fontSize: typeScale.display4xl.fontSize,
+    lineHeight: 42,
+  },
+  hero: { padding: space.p8 },
+  heroContent: { alignItems: "center" },
+  heroKicker: { color: colors.primary, marginBottom: space.sm },
+  heroTitle: { textAlign: "center", marginBottom: space.md },
+  statsRow: { flexDirection: "row", gap: space.md, marginVertical: space.p6 },
+  statCard: {
+    flex: 1,
+    padding: space.p4,
+    borderRadius: radius["2xl"],
+    alignItems: "center",
+  },
   statValue: {
-    marginTop: 4,
+    marginTop: space.xs,
   },
-  section: { marginBottom: 8 },
+  section: { marginBottom: space.sm },
+  shiftsKicker: { marginBottom: space.sm },
+  shiftCard: { marginBottom: space.sm, padding: space.p4 },
   shift: { color: colors.foreground },
   letter: {
-    marginTop: 8,
+    marginTop: space.sm,
     lineHeight: 28,
   },
   scaleLabel: { marginBottom: 0 },
-  scaleRow: { flexDirection: "row", gap: 4, marginTop: 4 },
+  scaleRow: { flexDirection: "row", gap: space.xs, marginTop: space.xs },
   scaleDot: {
     flex: 1,
-    height: 24,
-    borderRadius: 6,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.ringHairline,
+    height: 28,
+    borderRadius: radius.md,
+    backgroundColor: colors.muted,
   },
-  scaleDotActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  stars: { flexDirection: "row", gap: 8, marginVertical: 8 },
+  scaleDotActive: { backgroundColor: colors.primary },
+  stars: { flexDirection: "row", gap: space.sm, marginVertical: space.sm },
   input: {
     backgroundColor: colors.card,
     borderRadius: radius["2xl"],
-    padding: 12,
+    paddingHorizontal: space.inputX,
+    paddingVertical: space.md,
     minHeight: 100,
-    marginBottom: 12,
+    marginBottom: space.md,
     fontFamily: fonts.sans,
+    fontSize: typeScale.input.fontSize,
+    lineHeight: typeScale.bodyMd.lineHeight,
     color: colors.foreground,
-    borderWidth: 1,
+    borderWidth: borders.hairline,
     borderColor: colors.ringHairline,
     textAlignVertical: "top",
   },
   permissionRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 16,
+    gap: space.md,
+    marginBottom: space.lg,
   },
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 6,
-    borderWidth: 1,
+    borderRadius: radius.sm,
+    borderWidth: borders.hairline,
     borderColor: colors.ringHairline,
     backgroundColor: colors.card,
     alignItems: "center",

@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { colors, fonts, radius } from "@/src/theme";
+import { borders, colors, fonts, radius, space, typeScale } from "@/src/theme";
 
 type Props = {
   tabs: string[];
@@ -31,23 +31,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: colors.card,
     borderRadius: radius.full,
-    padding: 4,
-    borderWidth: 1,
+    padding: space.xs,
+    borderWidth: borders.hairline,
     borderColor: colors.ringHairline,
   },
   tab: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: space.sm,
+    paddingHorizontal: space.lg,
     alignItems: "center",
     borderRadius: radius.full,
   },
-  tabActive: { backgroundColor: colors.primary },
+  tabActive: { backgroundColor: colors.foreground },
   text: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
+    fontFamily: fonts.sansSemi,
+    fontSize: typeScale.bodySm.fontSize,
+    lineHeight: typeScale.bodySm.lineHeight,
     textTransform: "uppercase",
-    letterSpacing: 1.6,
-    color: colors.foreground,
+    letterSpacing: 1.2,
+    color: colors.mutedForeground,
   },
-  textActive: { color: colors.primaryForeground },
+  textActive: { color: colors.background },
 });

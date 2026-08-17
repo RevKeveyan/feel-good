@@ -1,8 +1,8 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { CheckCircle2 } from "@/components/ui/icons";
-import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from "react-native-svg";
-import { DisplayTitle, Kicker, StatValue } from "./Typography";
-import { colors } from "@/src/theme";
+import Svg, { Defs, LinearGradient as SvgGradient, Path, Stop } from "react-native-svg";
+import { DisplayTitle, Kicker } from "./Typography";
+import { colors, fonts, space, typeScale } from "@/src/theme";
 
 type Props = {
   score: number;
@@ -12,43 +12,41 @@ type Props = {
   remaining: number;
 };
 
+const RING_SIZE = 192;
+/** Web arc path in a 36x36 box: circumference is exactly 100 units. */
+const ARC = "M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831";
+
 export function ScoreRing({ score, max = 100, habits, checkInDone, remaining }: Props) {
-  const size = 180;
-  const stroke = 8;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
   const pct = Math.max(0, Math.min(1, score / max));
-  const dash = `${pct * c} ${c}`;
+  const dash = `${pct * 100}, 100`;
 
   return (
     <View style={styles.wrap}>
       <View style={styles.ringBox}>
-        <Svg width={size} height={size} style={styles.svg}>
+        <Svg width={RING_SIZE} height={RING_SIZE} viewBox="0 0 36 36" style={styles.svg}>
           <Defs>
-            <SvgGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <SvgGradient id="scoreGrad" x1="0" y1="0" x2="1" y2="1">
               <Stop offset="0%" stopColor={colors.lime} />
-              <Stop offset="50%" stopColor={colors.accent} />
+              <Stop offset="60%" stopColor={colors.accent} />
               <Stop offset="100%" stopColor={colors.destructive} />
             </SvgGradient>
           </Defs>
-          <Circle
-            cx={size / 2}
-            cy={size / 2}
-            r={r}
-            stroke={colors.ringHairline}
-            strokeWidth={stroke}
+          <Path
+            d={ARC}
+            stroke={colors.foreground}
+            strokeOpacity={0.1}
+            strokeWidth={2.5}
             fill="none"
+            transform="rotate(-90 18 18)"
           />
-          <Circle
-            cx={size / 2}
-            cy={size / 2}
-            r={r}
+          <Path
+            d={ARC}
             stroke="url(#scoreGrad)"
-            strokeWidth={stroke}
-            fill="none"
+            strokeWidth={3}
             strokeDasharray={dash}
             strokeLinecap="round"
-            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            fill="none"
+            transform="rotate(-90 18 18)"
           />
         </Svg>
         <View style={styles.center}>
@@ -65,7 +63,7 @@ export function ScoreRing({ score, max = 100, habits, checkInDone, remaining }: 
         </View>
       </View>
       <View style={styles.meta}>
-        <MetaItem label="Habits" value={`${habits}/5`} />
+        <MetaItem label="Habits" value={`${habits} / 5`} />
         <View style={styles.divider} />
         <MetaItem label="Check-in" value={checkInDone ? "Done" : "Required"} muted={!checkInDone} />
         <View style={styles.divider} />
@@ -91,12 +89,11 @@ function MetaItem({
       <Kicker numberOfLines={1} style={styles.metaKicker}>
         {label}
       </Kicker>
-      <StatValue
-        size="sm"
+      <Text
         style={[styles.metaValue, muted && styles.metaValueMuted, accent && styles.metaValueAccent]}
       >
         {value}
-      </StatValue>
+      </Text>
     </View>
   );
 }
@@ -104,37 +101,45 @@ function MetaItem({
 const styles = StyleSheet.create({
   wrap: { alignItems: "center", width: "100%" },
   ringBox: {
-    width: 180,
-    height: 180,
+    width: RING_SIZE,
+    height: RING_SIZE,
     alignItems: "center",
     justifyContent: "center",
   },
   svg: { position: "absolute" },
   center: { alignItems: "center" },
-  score: { marginTop: 2 },
+  score: { marginTop: 4 },
   completeRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    marginTop: 4,
+    gap: space.xs,
+    marginTop: space.xs,
   },
   completeText: {
     color: colors.primary,
   },
   meta: {
     flexDirection: "row",
-    width: "100%",
-    marginTop: 16,
-    alignItems: "stretch",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: space["2xl"],
+    marginTop: space.p6,
   },
-  metaItem: { flex: 1, alignItems: "center", minWidth: 0, paddingHorizontal: 4 },
+  metaItem: { alignItems: "center", minWidth: 0 },
   divider: {
     width: 1,
+    height: space["2xl"],
     backgroundColor: colors.border,
-    marginVertical: 4,
   },
-  metaKicker: { letterSpacing: 1.5 },
-  metaValue: { marginTop: 2 },
+  metaKicker: { letterSpacing: 0 },
+  metaValue: {
+    marginTop: 2,
+    fontFamily: fonts.sansSemi,
+    fontSize: typeScale.bodyLg.fontSize,
+    lineHeight: 24,
+    color: colors.foreground,
+    textAlign: "center",
+  },
   metaValueMuted: { color: colors.mutedForeground },
   metaValueAccent: { color: colors.accent },
 });

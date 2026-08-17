@@ -1,6 +1,7 @@
+import { useId } from "react";
 import Svg, { Circle, Defs, Line, Path, Polygon, RadialGradient, Stop, Text as SvgText } from "react-native-svg";
 import { View } from "react-native";
-import { colors } from "@/src/theme";
+import { colors, fonts } from "@/src/theme";
 
 type Axis = { key: string; label: string };
 
@@ -16,7 +17,7 @@ export function RadarChart({ axes, values, size = 260, max = 10 }: Props) {
   const cy = size / 2;
   const radius = size / 2 - 30;
   const n = axes.length;
-  const fillId = "wheelFill";
+  const fillId = `wheel-fill-${useId().replace(/:/g, "")}`;
 
   const pointFor = (i: number, v: number) => {
     const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
@@ -35,9 +36,9 @@ export function RadarChart({ axes, values, size = 260, max = 10 }: Props) {
       <Svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
         <Defs>
           <RadialGradient id={fillId} cx="50%" cy="50%" r="50%">
-            <Stop offset="0%" stopColor="#F2BDC2" stopOpacity={0.45} />
-            <Stop offset="60%" stopColor="#DD9B9B" stopOpacity={0.28} />
-            <Stop offset="100%" stopColor="#F8EFEE" stopOpacity={0.15} />
+            <Stop offset="0%" stopColor={colors.secondary} stopOpacity={0.45} />
+            <Stop offset="60%" stopColor={colors.destructive} stopOpacity={0.28} />
+            <Stop offset="100%" stopColor={colors.card} stopOpacity={0.15} />
           </RadialGradient>
         </Defs>
         {gridLevels.map((lvl) => {
@@ -53,7 +54,7 @@ export function RadarChart({ axes, values, size = 260, max = 10 }: Props) {
               key={lvl}
               points={pts}
               fill="none"
-              stroke="#DD9B9B"
+              stroke={colors.destructive}
               strokeOpacity={0.18}
               strokeWidth={1}
             />
@@ -68,15 +69,21 @@ export function RadarChart({ axes, values, size = 260, max = 10 }: Props) {
               y1={cy}
               x2={cx + Math.cos(angle) * radius}
               y2={cy + Math.sin(angle) * radius}
-              stroke="#DD9B9B"
+              stroke={colors.destructive}
               strokeOpacity={0.14}
               strokeWidth={1}
             />
           );
         })}
-        <Path d={pathD} fill={`url(#${fillId})`} stroke="#DD9B9B" strokeWidth={2} />
+        <Path
+          d={pathD}
+          fill={`url(#${fillId})`}
+          stroke={colors.destructive}
+          strokeWidth={2}
+          strokeLinejoin="round"
+        />
         {pathPoints.map((p, i) => (
-          <Circle key={`pt-${axes[i].key}`} cx={p.x} cy={p.y} r={3.5} fill="#FFFFFF" stroke="#DD9B9B" strokeWidth={1.5} />
+          <Circle key={`pt-${axes[i].key}`} cx={p.x} cy={p.y} r={3.5} fill={colors.white} stroke={colors.destructive} strokeWidth={1.5} />
         ))}
         {axes.map((a, i) => {
           const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
@@ -88,7 +95,8 @@ export function RadarChart({ axes, values, size = 260, max = 10 }: Props) {
               x={lx}
               y={ly}
               fill={colors.foreground}
-              fontSize={8}
+              fontSize={9}
+              fontFamily={fonts.sans}
               textAnchor="middle"
               alignmentBaseline="middle"
             >

@@ -22,15 +22,17 @@ import {
   OpenSans_600SemiBold,
   OpenSans_700Bold,
 } from "@expo-google-fonts/open-sans";
-import { PlayfairDisplay_700Bold } from "@expo-google-fonts/playfair-display";
 import { initAnalytics } from "@/lib/analytics";
-import { completeSessionFromUrl, parseAuthCallbackUrl } from "@/lib/auth";
+import { completeSessionFromUrl, markPasswordRecoveryPending, parseAuthCallbackUrl } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { colors } from "@/src/theme";
 
 LogBox.ignoreLogs([
   "expo-notifications: Android Push notifications",
   /expo-notifications:.*Expo Go/,
+  "Network request failed",
+  /TypeError: Network request failed/,
+  /AuthRetryableFetchError/,
 ]);
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -46,12 +48,18 @@ function isAuthCallbackUrl(url: string) {
   );
 }
 
+function pathLooksLikeAuthReset(urlOrPath: string) {
+  const lower = urlOrPath.toLowerCase();
+  return lower.includes("auth/reset");
+}
+
 async function handleAuthUrl(url: string) {
   if (!isAuthCallbackUrl(url)) return;
   const { access_token, refresh_token, type } = parseAuthCallbackUrl(url);
   if (!access_token || !refresh_token) return;
   await completeSessionFromUrl(url);
-  if (type === "recovery" || url.toLowerCase().includes("auth/reset")) {
+  if (type === "recovery" || pathLooksLikeAuthReset(url)) {
+    markPasswordRecoveryPending();
     router.replace("/auth/reset");
   } else if (url.toLowerCase().includes("auth/callback")) {
     router.replace("/");
@@ -70,7 +78,6 @@ export default function RootLayout() {
     OpenSans_500Medium,
     OpenSans_600SemiBold,
     OpenSans_700Bold,
-    PlayfairDisplay_700Bold,
   });
   const fontsReady = fontsLoaded || !!fontError;
 
@@ -94,7 +101,7 @@ export default function RootLayout() {
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
-        router.replace("/auth/reset");
+        markPasswordRecoveryPending();
       }
     });
 

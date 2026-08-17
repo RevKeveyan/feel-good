@@ -27,6 +27,9 @@ apps/mobile/credentials/
 *.p12
 *.p8
 
+# Reference-only web project, not part of the build
+reverence web/
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars

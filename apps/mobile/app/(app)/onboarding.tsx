@@ -1,17 +1,23 @@
 import { useEffect, useState } from "react";
 import {
   Alert,
-  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { ArrowLeft, ArrowRight, Check, Lock, Sparkles, Trash2 } from "@/components/ui/icons";
+import { ArrowLeft, ArrowRight, Check, Lock, Sparkles } from "@/components/ui/icons";
 import { router } from "expo-router";
-import * as ImagePicker from "expo-image-picker";
+import { KeyboardAccessoryBar } from "@/components/KeyboardScreen";
+import { VisionBoardGrid } from "@/components/VisionBoardGrid";
 import {
   GOAL_OPTIONS,
   ONBOARDING_STEPS,
@@ -23,20 +29,37 @@ import {
   type WheelScores,
 } from "@feelgood/shared";
 import { supabase } from "@/lib/supabase";
-import { alertMediaPermissionNeeded } from "@/lib/media-permissions";
-import { cacheBustUrl, extensionForContentType, formatUploadError, guessImageContentType, uploadLocalImage } from "@/lib/upload-image";
 import {
   GradientArea,
   PromptField,
   RadarChart,
   StepToneBackground,
-  VisionAddTile,
   WheelScale,
 } from "@/components/onboarding";
-import { Body, DisplayTitle, IconLabel, Kicker, Label, OutlineButton, PrimaryButton } from "@/components/ui";
-import { colors, fonts, gradients, radius, space, visionRingColors } from "@/src/theme";
-
-type VisionItem = { id: string; storage_path: string; url: string };
+import {
+  Body,
+  DisplayTitle,
+  GhostButton,
+  IconLabel,
+  Kicker,
+  Label,
+  PrimaryButton,
+  SoftOrb,
+} from "@/components/ui";
+import {
+  borders,
+  colors,
+  fonts,
+  gradients,
+  iconSizes,
+  layout,
+  opacity,
+  radius,
+  shadows,
+  space,
+  typeScale,
+  withAlpha,
+} from "@/src/theme";
 
 export default function OnboardingScreen() {
   const [stepIndex, setStepIndex] = useState(0);
@@ -51,8 +74,6 @@ export default function OnboardingScreen() {
   const [commitmentName, setCommitmentName] = useState("");
   const [commitmentSignedAt, setCommitmentSignedAt] = useState<string | null>(null);
   const [wheel, setWheel] = useState<WheelScores>(emptyWheel());
-  const [visionItems, setVisionItems] = useState<VisionItem[]>([]);
-  const [visionUploading, setVisionUploading] = useState(false);
 
   const step = ONBOARDING_STEPS[stepIndex] as OnboardingStep;
   const progressCount = ONBOARDING_STEPS.length - 1;
@@ -83,7 +104,7 @@ export default function OnboardingScreen() {
     ]);
 
     if (r?.completed_at) {
-      router.replace("/(app)/today");
+      router.replace("/(app)/overview");
       return;
     }
     if (r) {
@@ -98,33 +119,6 @@ export default function OnboardingScreen() {
       setCommitmentSignedAt(r.commitment_signed_at ?? null);
     }
     if (w) setWheel(wheelRowToScores(w as Record<string, number>));
-    await loadVision(auth.user.id);
-  }
-
-  async function loadVision(userId: string) {
-    const { data } = await supabase
-      .from("vision_board_items")
-      .select("id, storage_path")
-      .eq("user_id", userId)
-      .order("sort_order", { ascending: true });
-    if (!data?.length) {
-      setVisionItems([]);
-      return;
-    }
-    const items: VisionItem[] = [];
-    for (const row of data) {
-      const { data: signed } = await supabase.storage
-        .from("vision-board")
-        .createSignedUrl(row.storage_path, 3600);
-      if (signed?.signedUrl) {
-        items.push({
-          id: row.id,
-          storage_path: row.storage_path,
-          url: cacheBustUrl(signed.signedUrl) ?? signed.signedUrl,
-        });
-      }
-    }
-    setVisionItems(items);
   }
 
   async function saveResponses(patch: Record<string, unknown>) {
@@ -178,109 +172,6 @@ export default function OnboardingScreen() {
     void saveResponses({ goals: nextGoals });
   }
 
-  async function pickVisionLibraryAsset() {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      alertMediaPermissionNeeded("Photo library access is required for your vision board.");
-      return null;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      quality: 0.8,
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    });
-    if (result.canceled || !result.assets[0]) return null;
-    const asset = result.assets[0];
-    const mimeType =
-      asset.mimeType?.trim() ||
-      guessImageContentType(asset.fileName ?? asset.uri);
-    return {
-      uri: asset.uri,
-      mimeType,
-      fileName: asset.fileName ?? null,
-    };
-  }
-
-  function visionStoragePath(userId: string, mimeType: string, fileName: string | null) {
-    const fromName = fileName?.split(".").pop()?.toLowerCase();
-    const ext =
-      fromName && /^[a-z0-9]+$/.test(fromName)
-        ? fromName
-        : extensionForContentType(mimeType);
-    return `${userId}/${Date.now()}.${ext}`;
-  }
-
-  async function uploadVisionImage() {
-    if (!uid || visionUploading) return;
-    if (visionItems.length >= 8) {
-      Alert.alert("Limit reached", "You can add up to 8 vision board images.");
-      return;
-    }
-    const asset = await pickVisionLibraryAsset();
-    if (!asset) return;
-    const path = visionStoragePath(uid, asset.mimeType, asset.fileName);
-    setVisionUploading(true);
-    try {
-      await uploadLocalImage({
-        bucket: "vision-board",
-        path,
-        uri: asset.uri,
-        contentType: asset.mimeType,
-      });
-      const { error } = await supabase
-        .from("vision_board_items")
-        .insert({ user_id: uid, storage_path: path, sort_order: Date.now() });
-      if (error) {
-        await supabase.storage.from("vision-board").remove([path]);
-        throw new Error(error.message || "Could not save vision board item");
-      }
-      await loadVision(uid);
-    } catch (e) {
-      Alert.alert("Upload failed", formatUploadError(e));
-    } finally {
-      setVisionUploading(false);
-    }
-  }
-
-  async function replaceVisionItem(item: VisionItem) {
-    if (!uid || visionUploading) return;
-    const asset = await pickVisionLibraryAsset();
-    if (!asset) return;
-    const path = visionStoragePath(uid, asset.mimeType, asset.fileName);
-    setVisionUploading(true);
-    try {
-      await uploadLocalImage({
-        bucket: "vision-board",
-        path,
-        uri: asset.uri,
-        contentType: asset.mimeType,
-      });
-      const { error } = await supabase
-        .from("vision_board_items")
-        .update({ storage_path: path })
-        .eq("id", item.id)
-        .eq("user_id", uid);
-      if (error) {
-        await supabase.storage.from("vision-board").remove([path]);
-        throw new Error(error.message || "Could not update vision board item");
-      }
-      if (item.storage_path !== path) {
-        await supabase.storage.from("vision-board").remove([item.storage_path]);
-      }
-      await loadVision(uid);
-    } catch (e) {
-      Alert.alert("Replace failed", formatUploadError(e));
-    } finally {
-      setVisionUploading(false);
-    }
-  }
-
-  async function removeVisionItem(item: VisionItem) {
-    if (!uid) return;
-    await supabase.storage.from("vision-board").remove([item.storage_path]);
-    await supabase.from("vision_board_items").delete().eq("id", item.id);
-    setVisionItems((prev) => prev.filter((v) => v.id !== item.id));
-  }
-
   async function signCommitment() {
     const name = commitmentName.trim();
     if (!name) return;
@@ -300,7 +191,7 @@ export default function OnboardingScreen() {
       }),
       supabase.from("profiles").update({ onboarding_completed_at: now }).eq("id", uid),
     ]);
-    router.replace("/(app)/today");
+    router.replace("/(app)/overview");
   }
 
   function canContinue(): boolean {
@@ -346,17 +237,38 @@ export default function OnboardingScreen() {
     void saveWheel(nextWheel);
   }
 
-  return (
-    <View style={styles.root}>
-      <StepToneBackground step={step} />
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <Kicker>The Feel Good Challenge · Onboarding</Kicker>
+  const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  const visionContentWidth = Math.min(
+    windowWidth - layout.screenPadX * 2,
+    layout.contentMaxWidth,
+  );
+  const ctaLabel = stepCta(step);
+  const ctaDisabled = !canContinue() && step !== "done";
+  const commitmentDisabled = !commitmentName.trim() || !!commitmentSignedAt;
+
+  const scrollBody = (
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          { paddingTop: layout.screenPadTop + insets.top },
+          step === "vision" && {
+            flexGrow: 0,
+            paddingBottom: layout.screenPadBottom + insets.bottom,
+          },
+        ]}
+        showsVerticalScrollIndicator={step === "vision"}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        onScrollBeginDrag={Keyboard.dismiss}
+      >
+        <Kicker style={styles.pageKicker}>The Feel Good Challenge · Onboarding</Kicker>
         <View style={styles.progressRow}>
           {Array.from({ length: progressCount }).map((_, i) => (
             <View key={i} style={styles.progressTrack}>
               {i <= visibleIndex ? (
                 <LinearGradient
-                  colors={[colors.destructive, colors.accent, colors.secondary]}
+                  colors={[...gradients.progress]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.progressFill}
@@ -366,15 +278,17 @@ export default function OnboardingScreen() {
           ))}
         </View>
 
-        <Kicker style={{ marginTop: space.xl }}>{stepEyebrow(step)}</Kicker>
+        <Kicker style={styles.stepEyebrow}>{stepEyebrow(step)}</Kicker>
         <DisplayTitle style={styles.title}>{stepTitle(step)}</DisplayTitle>
         {stepSubtitle(step) ? (
-          <Body style={{ marginBottom: space.lg }}>{stepSubtitle(step)}</Body>
+          <Body size="base" style={styles.subtitle}>
+            {stepSubtitle(step)}
+          </Body>
         ) : null}
 
         {step === "welcome" && (
-          <GradientArea colorsStops={gradients.welcomeFoundation}>
-            <Body style={{ color: colors.foreground + "CC" }}>
+          <GradientArea colorsStops={gradients.welcomeFoundation} contentStyle={styles.cardPad6}>
+            <Body style={styles.cardBody}>
               Before Day 1, we&apos;ll spend a few minutes on the emotional foundation, why you&apos;re
               here, what you want to feel, and what success actually looks like for you. This
               is the part most challenges skip. It&apos;s what makes yours stick.
@@ -383,7 +297,7 @@ export default function OnboardingScreen() {
         )}
 
         {step === "why" && (
-          <>
+          <View style={styles.promptStack}>
             <PromptField
               label="What's happening in your life that brought you here today?"
               value={whyJoined}
@@ -412,7 +326,7 @@ export default function OnboardingScreen() {
               multiline
               onBlur={() => saveResponses({ success_looks_like: successLooksLike })}
             />
-          </>
+          </View>
         )}
 
         {step === "goals" && (
@@ -433,7 +347,7 @@ export default function OnboardingScreen() {
                         end={{ x: 1, y: 1 }}
                         style={[styles.goalChip, styles.goalChipActive]}
                       >
-                        <Label style={styles.goalTextActive} numberOfLines={3}>
+                        <Label style={styles.goalText} numberOfLines={3}>
                           {g}
                         </Label>
                         <View style={styles.goalCheckOn}>
@@ -453,12 +367,19 @@ export default function OnboardingScreen() {
               })}
             </View>
             {hasOther && (
-              <PromptField
-                label='Tell us what "Other" means to you'
-                value={otherText}
-                onChangeText={setOtherText}
-                placeholder="In a few words…"
-              />
+              <View style={styles.goalsOther}>
+                <Kicker style={styles.goalsOtherLabel}>
+                  Tell us what &quot;Other&quot; means to you
+                </Kicker>
+                <TextInput
+                  style={styles.goalsOtherInput}
+                  value={otherText}
+                  onChangeText={setOtherText}
+                  placeholder="In a few words…"
+                  placeholderTextColor={withAlpha(colors.foreground, 0.3)}
+                  returnKeyType="done"
+                />
+              </View>
             )}
           </View>
         )}
@@ -466,39 +387,63 @@ export default function OnboardingScreen() {
         {step === "commitment" && (
           <GradientArea
             colorsStops={gradients.commitment}
-            padded={false}
-            style={{ marginBottom: 0 }}
+            contentStyle={styles.cardPad8}
+            backdrop={
+              <SoftOrb
+                size={160}
+                blur={40}
+                color={colors.accent}
+                opacity={0.4}
+                top={-64}
+                right={-64}
+              />
+            }
           >
-            <View style={styles.commitmentInner}>
-              <DisplayTitle size="sm" style={styles.pledge}>
-                &ldquo;I commit to showing up for myself for the next 55 days.&rdquo;
-              </DisplayTitle>
-              <Kicker style={styles.commitmentKicker}>Type your name to sign</Kicker>
-              <TextInput
-                style={styles.commitmentInput}
-                placeholder="Your name"
-                placeholderTextColor={colors.mutedForeground}
-                value={commitmentName}
-                onChangeText={setCommitmentName}
-              />
-              <PrimaryButton
-                label={commitmentSignedAt ? `Signed, ${commitmentName}` : "I agree"}
-                onPress={signCommitment}
-                disabled={!commitmentName.trim() || !!commitmentSignedAt}
-                style={styles.commitmentAgree}
-              />
-              {commitmentSignedAt ? (
-                <Body size="sm" style={{ marginTop: 12 }}>
-                  Signed {new Date(commitmentSignedAt).toLocaleString()}
-                </Body>
-              ) : null}
-            </View>
+            <DisplayTitle size="sm" style={styles.pledge}>
+              &ldquo;I commit to showing up for myself for the next 55 days.&rdquo;
+            </DisplayTitle>
+            <Kicker style={styles.commitmentKicker}>Type your name to sign</Kicker>
+            <TextInput
+              style={styles.commitmentInput}
+              placeholder="Your name"
+              placeholderTextColor={colors.mutedForeground}
+              value={commitmentName}
+              onChangeText={setCommitmentName}
+              returnKeyType="done"
+            />
+            <PrimaryButton
+              label={commitmentSignedAt ? `Signed, ${commitmentName}` : "I agree"}
+              onPress={signCommitment}
+              disabled={commitmentDisabled}
+              style={[
+                styles.commitmentAgree,
+                commitmentDisabled && { opacity: opacity.disabledSoft },
+              ]}
+            />
+            {commitmentSignedAt ? (
+              <Text style={styles.signedAt}>
+                Signed {new Date(commitmentSignedAt).toLocaleString()}
+              </Text>
+            ) : null}
           </GradientArea>
         )}
 
         {step === "wheel" && (
           <>
-            <GradientArea colorsStops={gradients.wheelCard} padded={false} style={{ padding: 16 }}>
+            <GradientArea
+              colorsStops={gradients.wheelCard}
+              contentStyle={styles.cardPad6}
+              backdrop={
+                <SoftOrb
+                  size={224}
+                  blur={64}
+                  color={colors.destructive}
+                  opacity={0.25}
+                  top={-64}
+                  right={-64}
+                />
+              }
+            >
               <RadarChart axes={[...WHEEL_DIMENSIONS]} values={wheel} />
             </GradientArea>
             <View style={styles.wheelScales}>
@@ -518,11 +463,11 @@ export default function OnboardingScreen() {
         )}
 
         {step === "why-statement" && (
-          <GradientArea colorsStops={gradients.whyStatement} style={{ marginBottom: 0 }}>
+          <GradientArea colorsStops={gradients.whyStatement} contentStyle={styles.cardPad5}>
             <TextInput
               style={styles.whyStatementInput}
               placeholder="This matters to me because…"
-              placeholderTextColor={colors.mutedForeground + "80"}
+              placeholderTextColor={withAlpha(colors.foreground, 0.3)}
               value={whyStatement}
               onChangeText={setWhyStatement}
               onBlur={() => saveResponses({ why_statement: whyStatement })}
@@ -533,43 +478,7 @@ export default function OnboardingScreen() {
         )}
 
         {step === "vision" && (
-          <View>
-            <View style={styles.visionGrid}>
-              {visionItems.map((item, i) => (
-                <View
-                  key={item.id}
-                  style={[
-                    styles.visionCell,
-                    { borderColor: visionRingColors[i % visionRingColors.length] },
-                  ]}
-                >
-                  <Pressable
-                    style={StyleSheet.absoluteFill}
-                    disabled={visionUploading}
-                    onPress={() => void replaceVisionItem(item)}
-                  >
-                    <Image source={{ uri: item.url }} style={styles.visionImage} />
-                  </Pressable>
-                  <Pressable style={styles.visionRemove} onPress={() => void removeVisionItem(item)}>
-                    <Trash2 size={16} color="#fff" strokeWidth={2} />
-                  </Pressable>
-                </View>
-              ))}
-              {visionItems.length < 8 && (
-                <VisionAddTile
-                  onPress={() => void uploadVisionImage()}
-                  uploading={visionUploading}
-                />
-              )}
-            </View>
-            <IconLabel
-              style={{ marginTop: 4 }}
-              gap={8}
-              icon={<Lock size={14} color={colors.mutedForeground} strokeWidth={2} />}
-            >
-              <Body>Only you can see these. Tap a photo to replace it.</Body>
-            </IconLabel>
-          </View>
+          <VisionBoardGrid userId={uid} contentWidth={visionContentWidth} />
         )}
 
         {step === "letter" && (
@@ -578,7 +487,7 @@ export default function OnboardingScreen() {
               <TextInput
                 style={styles.letterInput}
                 placeholder="Dear future me,"
-                placeholderTextColor={colors.mutedForeground + "80"}
+                placeholderTextColor={withAlpha(colors.foreground, 0.3)}
                 value={futureLetter}
                 onChangeText={setFutureLetter}
                 onBlur={() => saveResponses({ future_letter: futureLetter })}
@@ -587,50 +496,97 @@ export default function OnboardingScreen() {
               />
             </View>
             <IconLabel
-              style={{ marginTop: 4 }}
-              gap={8}
-              icon={<Lock size={14} color={colors.mutedForeground} strokeWidth={2} />}
+              style={styles.lockNoteTight}
+              gap={space.sm}
+              icon={<Lock size={iconSizes.xs} color={colors.mutedForeground} strokeWidth={2} />}
             >
-              <Body>Sealed until Day 55.</Body>
+              <Body size="sm">Sealed until Day 55.</Body>
             </IconLabel>
           </>
         )}
 
         {step === "done" && (
-          <GradientArea colorsStops={gradients.doneHero}>
-            <Sparkles size={24} color={colors.foreground} strokeWidth={2} style={{ marginBottom: 16 }} />
+          <GradientArea
+            colorsStops={gradients.doneHero}
+            hairline={false}
+            contentStyle={styles.cardPad8}
+            backdrop={
+              <SoftOrb
+                size={224}
+                blur={64}
+                color={colors.white}
+                opacity={0.3}
+                top={-80}
+                right={-80}
+              />
+            }
+          >
+            <Sparkles
+              size={iconSizes.lg}
+              color={colors.foreground}
+              strokeWidth={2}
+              style={styles.doneIcon}
+            />
             <DisplayTitle size="sm" style={styles.doneLead}>
               Tomorrow is Day 1. Today, you chose yourself.
             </DisplayTitle>
-            <Body style={{ color: colors.foreground + "D9" }}>
+            <Body style={styles.doneBody}>
               Your goals, your wheel, your why, your vision and your letter are saved. We&apos;ll
               bring them back to you at the moments that matter.
             </Body>
           </GradientArea>
         )}
 
-        <View style={styles.navRow}>
-          {stepIndex > 0 && step !== "done" && (
-            <OutlineButton
+        <View style={[styles.navRow, step === "done" && styles.navRowDone]}>
+          {stepIndex > 0 && step !== "done" ? (
+            <GhostButton
               label="Back"
               onPress={back}
-              style={{ flex: 0, paddingHorizontal: 24 }}
-              leadingIcon={<ArrowLeft size={16} color={colors.foreground + "B3"} strokeWidth={2} />}
+              leadingIcon={
+                <ArrowLeft size={iconSizes.sm} color={colors.foreground70} strokeWidth={2} />
+              }
             />
+          ) : (
+            <View />
           )}
           <PrimaryButton
-            label={stepCta(step)}
+            label={ctaLabel}
             onPress={next}
-            style={{ flex: 1 }}
-            disabled={!canContinue() && step !== "done"}
+            style={step === "done" ? styles.doneCta : styles.nextCta}
+            disabled={ctaDisabled}
             trailingIcon={
               step !== "done" ? (
-                <ArrowRight size={16} color={colors.primaryForeground} strokeWidth={2} />
+                <ArrowRight
+                  size={iconSizes.sm}
+                  color={colors.primaryForeground}
+                  strokeWidth={2}
+                />
               ) : undefined
             }
           />
         </View>
       </ScrollView>
+  );
+
+  return (
+    <View style={styles.root}>
+      <StepToneBackground step={step} />
+      {Platform.OS === "ios" ? (
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior="padding"
+          keyboardVerticalOffset={insets.top}
+        >
+          {scrollBody}
+        </KeyboardAvoidingView>
+      ) : (
+        scrollBody
+      )}
+      <KeyboardAccessoryBar
+        primaryLabel={ctaLabel}
+        onPrimaryPress={next}
+        primaryDisabled={ctaDisabled}
+      />
     </View>
   );
 }
@@ -692,163 +648,195 @@ function stepCta(step: OnboardingStep) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  container: { padding: space.screenX, paddingTop: 56, paddingBottom: 48, flexGrow: 1 },
-  progressRow: { flexDirection: "row", gap: 6, marginTop: 12 },
+  container: {
+    paddingHorizontal: layout.screenPadX,
+    paddingBottom: layout.screenPadBottom,
+    maxWidth: layout.contentMaxWidth,
+    width: "100%",
+    alignSelf: "center",
+    flexGrow: 1,
+  },
+  pageKicker: {
+    color: colors.foreground70,
+    marginBottom: space.md,
+  },
+  progressRow: { flexDirection: "row", gap: 6, marginBottom: space["2xl"] },
   progressTrack: {
     flex: 1,
     height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.foreground + "1A",
+    borderRadius: radius.full,
+    backgroundColor: withAlpha(colors.foreground, 0.1),
     overflow: "hidden",
   },
   progressFill: { flex: 1, height: "100%" },
-  title: { fontSize: 34, marginTop: 8, marginBottom: 8 },
+  stepEyebrow: {
+    color: colors.foreground,
+    marginBottom: space.md,
+  },
+  title: {
+    fontSize: typeScale.stepTitle.fontSize,
+    lineHeight: typeScale.stepTitle.lineHeight,
+    letterSpacing: typeScale.stepTitle.letterSpacing,
+    marginBottom: space.lg,
+  },
+  subtitle: { marginBottom: space["2xl"] },
+  cardPad5: { padding: space.p5 },
+  cardPad6: { padding: space.p6 },
+  cardPad8: { padding: space.p8 },
+  cardBody: {
+    color: withAlpha(colors.foreground, 0.8),
+    lineHeight: 23,
+  },
+  promptStack: { gap: space.p5 },
   goalsWrap: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
-    rowGap: 8,
-    marginBottom: 12,
+    gap: space.sm,
   },
   goalPressable: {
-    width: "48.5%",
-    height: 88,
+    flexBasis: "48%",
+    flexGrow: 1,
   },
   goalChip: {
-    flex: 1,
+    flexGrow: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    gap: space.sm,
+    padding: space.p4,
     borderRadius: radius["2xl"],
     backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)",
-    height: 88,
+    borderWidth: borders.hairline,
+    borderColor: colors.border,
   },
   goalChipActive: {
-    borderColor: colors.lime + "99",
+    borderColor: withAlpha(colors.lime, 0.6),
+    ...shadows.card,
   },
   goalText: {
     flex: 1,
     flexShrink: 1,
     color: colors.foreground,
-    fontSize: 14,
+    fontSize: typeScale.bodyMd.fontSize,
     lineHeight: 18,
-  },
-  goalTextActive: {
-    flex: 1,
-    flexShrink: 1,
-    color: colors.foreground,
-    fontSize: 14,
-    lineHeight: 18,
+    fontFamily: fonts.sansMedium,
   },
   goalCheckOff: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: radius.full,
     backgroundColor: colors.muted,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)",
+    borderWidth: borders.hairline,
+    borderColor: colors.border,
     flexShrink: 0,
   },
   goalCheckOn: {
     width: 20,
     height: 20,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.6)",
+    borderRadius: radius.full,
+    backgroundColor: withAlpha(colors.white, 0.6),
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
-  commitmentInner: {
-    padding: 28,
+  goalsOther: { marginTop: space.lg },
+  goalsOtherLabel: {
+    marginBottom: space.sm,
+    color: colors.mutedForeground,
+  },
+  goalsOtherInput: {
+    backgroundColor: colors.card,
+    borderRadius: radius["2xl"],
+    borderWidth: borders.hairline,
+    borderColor: colors.ringHairline,
+    paddingHorizontal: space.inputX,
+    paddingVertical: space.md,
+    fontFamily: fonts.sans,
+    fontSize: typeScale.input.fontSize,
+    lineHeight: typeScale.input.lineHeight,
+    color: colors.foreground,
   },
   pledge: {
-    fontSize: 24,
-    lineHeight: 32,
-    marginBottom: 24,
+    fontSize: typeScale.quote.fontSize,
+    lineHeight: typeScale.quote.lineHeight,
+    letterSpacing: typeScale.quote.letterSpacing,
+    marginBottom: space.xl,
   },
   commitmentKicker: {
-    marginBottom: 8,
+    marginBottom: space.sm,
+    color: colors.mutedForeground,
   },
   commitmentInput: {
     backgroundColor: colors.background,
     borderRadius: radius["2xl"],
-    borderBottomWidth: 2,
-    borderBottomColor: colors.primary + "4D",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderBottomWidth: borders.thick,
+    borderBottomColor: withAlpha(colors.primary, 0.3),
+    paddingHorizontal: space.inputX,
+    paddingVertical: space.md,
     fontFamily: fonts.display,
     fontStyle: "italic",
-    fontSize: 18,
+    fontSize: typeScale.displayLg.fontSize,
+    lineHeight: typeScale.displayLg.lineHeight,
     color: colors.foreground,
   },
   commitmentAgree: {
-    marginTop: 24,
+    marginTop: space.xl,
+    paddingVertical: space.md,
   },
-  wheelScales: { marginTop: 16 },
+  signedAt: {
+    marginTop: space.md,
+    fontFamily: fonts.sans,
+    fontSize: typeScale.meta.fontSize,
+    lineHeight: typeScale.meta.lineHeight,
+    color: colors.mutedForeground,
+  },
+  wheelScales: { marginTop: space.p6, gap: space.lg },
   whyStatementInput: {
     minHeight: 160,
     backgroundColor: "transparent",
     fontFamily: fonts.sans,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: typeScale.bodyBase.fontSize,
+    lineHeight: typeScale.bodyBase.lineHeight,
     color: colors.foreground,
     padding: 0,
   },
   letterCard: {
     backgroundColor: colors.card,
     borderRadius: radius["3xl"],
-    padding: 20,
-    borderWidth: 1,
+    padding: space.p5,
+    borderWidth: borders.hairline,
     borderColor: colors.ringHairline,
-    marginBottom: 4,
   },
   letterInput: {
     minHeight: 200,
     backgroundColor: "transparent",
     fontFamily: fonts.display,
     fontStyle: "italic",
-    fontSize: 16,
-    lineHeight: 26,
+    fontSize: typeScale.bodyBase.fontSize,
+    lineHeight: typeScale.bodyBase.lineHeight,
     color: colors.foreground,
     padding: 0,
   },
+  doneIcon: { marginBottom: space.lg },
   doneLead: {
-    fontSize: 22,
-    lineHeight: 30,
-    marginBottom: 12,
+    fontSize: typeScale.quote.fontSize,
+    lineHeight: typeScale.quote.lineHeight,
+    letterSpacing: typeScale.quote.letterSpacing,
+    marginBottom: space.lg,
   },
-  visionGrid: {
+  doneBody: {
+    color: withAlpha(colors.foreground, 0.85),
+    lineHeight: 23,
+  },
+  lockNoteTight: { marginTop: space.md },
+  navRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginBottom: 12,
-    justifyContent: "space-between",
-  },
-  visionCell: {
-    width: "48%",
-    aspectRatio: 1,
-    position: "relative",
-    borderRadius: radius["2xl"],
-    borderWidth: 2,
-    overflow: "hidden",
-    backgroundColor: colors.card,
-  },
-  visionImage: { width: "100%", height: "100%" },
-  visionRemove: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "rgba(34,34,34,0.75)",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
+    gap: space.lg,
+    marginTop: layout.screenPadTop,
   },
-  navRow: { flexDirection: "row", gap: 12, marginTop: 28 },
+  navRowDone: { marginTop: space["2xl"] },
+  nextCta: { paddingVertical: 14 },
+  doneCta: { flex: 1, paddingVertical: space.lg },
 });

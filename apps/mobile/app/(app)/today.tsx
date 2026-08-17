@@ -11,9 +11,11 @@ import {
   View,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { Camera, CheckCircle2, Flame, Heart, Lock } from "@/components/ui/icons";
+import { KeyboardAccessoryBar } from "@/components/KeyboardScreen";
 import {
   CHALLENGE_LENGTH,
   MOVE_TYPES,
@@ -38,7 +40,7 @@ import { supabase } from "@/lib/supabase";
 import { resolveAvatarUrl } from "@/lib/avatar";
 import { alertMediaPermissionNeeded } from "@/lib/media-permissions";
 import { enqueueUpsert, flushOfflineQueue } from "@/lib/offline-queue";
-import { cacheBustUrl, extensionForContentType, formatUploadError, guessImageContentType, uploadLocalImage } from "@/lib/upload-image";
+import { cacheBustUrl, formatUploadError, uploadLocalImage } from "@/lib/upload-image";
 import { StruggleSheet } from "@/components/StruggleSheet";
 import {
   Body,
@@ -46,6 +48,7 @@ import {
   DisplayTitle,
   GradientCard,
   HabitToggle,
+  HydrateCard,
   IconLabel,
   Kicker,
   Label,
@@ -54,11 +57,23 @@ import {
   ProgressBar,
   ScoreRing,
   Screen,
+  SoftOrb,
   StatValue,
 } from "@/components/ui";
-import { colors, fonts, gradients, radius, space } from "@/src/theme";
+import {
+  borders,
+  colors,
+  fonts,
+  gradients,
+  iconSizes,
+  opacity,
+  radius,
+  space,
+  typeScale,
+  withAlpha,
+} from "@/src/theme";
 
-const WATER_INCREMENT = 250;
+const HYDRATE_POINTS = 36;
 
 export default function TodayScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -230,7 +245,7 @@ export default function TodayScreen() {
         : await ImagePicker.launchImageLibraryAsync({
             quality: 0.8,
             allowsEditing: true,
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ["images"],
           });
     if (result.canceled || !result.assets[0]) return;
 
@@ -238,14 +253,12 @@ export default function TodayScreen() {
     try {
       const weekNum = currentWeek(profile.challenge_start_date);
       const asset = result.assets[0];
-      const mimeType = asset.mimeType?.trim() || guessImageContentType(asset.fileName ?? asset.uri);
-      const ext = extensionForContentType(mimeType);
-      const path = `${auth.user.id}/week-${weekNum}-${Date.now()}.${ext}`;
+      const path = `${auth.user.id}/week-${weekNum}-${Date.now()}.jpg`;
       await uploadLocalImage({
         bucket: "weekly-photos",
         path,
         uri: asset.uri,
-        contentType: mimeType,
+        contentType: "image/jpeg",
         upsert: true,
       });
 
@@ -276,8 +289,6 @@ export default function TodayScreen() {
   const day = profile ? currentDay(profile.challenge_start_date) : 1;
   const week = profile ? currentWeek(profile.challenge_start_date) : 1;
   const remaining = profile ? daysRemaining(profile.challenge_start_date) : CHALLENGE_LENGTH;
-  const waterLiters = (entry?.water_ml ?? 0) / 1000;
-  const waterProgress = Math.min(100, ((entry?.water_ml ?? 0) / target) * 100);
   const streak = useMemo(() => computeStreak(allEntries), [allEntries]);
   const journeyPct = useMemo(
     () => Math.round((completedDaysCount(allEntries) / CHALLENGE_LENGTH) * 100),
@@ -305,8 +316,11 @@ export default function TodayScreen() {
       <Screen edges={["top"]}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <View style={{ flex: 1 }}>
-              <Kicker>{formatDate(today)}</Kicker>
+            <View style={styles.headerCopy}>
+              <Pressable onPress={() => router.push("/(app)/overview")}>
+                <Kicker>All days</Kicker>
+              </Pressable>
+              <Kicker style={styles.headerDate}>{formatDate(today)}</Kicker>
               <View style={styles.dayRow}>
                 <DisplayTitle style={styles.dayTitle}>Day {day}</DisplayTitle>
                 <Body size="sm" style={styles.dayMuted}>
@@ -324,39 +338,65 @@ export default function TodayScreen() {
           </View>
 
           {day >= CHALLENGE_LENGTH && (
-            <Pressable style={styles.revealCta} onPress={() => router.push("/(app)/complete")}>
-              <Kicker style={{ color: colors.primaryForeground }}>Day 55 · Unlocked</Kicker>
-              <DisplayTitle size="sm" style={styles.revealTitle}>
-                Reveal your transformation
-              </DisplayTitle>
+            <Pressable onPress={() => router.push("/(app)/complete")}>
+              <LinearGradient
+                colors={[...gradients.day55Banner]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.revealCta}
+              >
+                <View style={styles.revealCopy}>
+                  <Kicker style={styles.revealKicker}>Day 55 · Unlocked</Kicker>
+                  <DisplayTitle size="sm" style={styles.revealTitle}>
+                    Reveal your transformation
+                  </DisplayTitle>
+                </View>
+                <Text style={styles.revealArrow}>→</Text>
+              </LinearGradient>
             </Pressable>
           )}
 
           {missedYest && (
             <BrandCard style={styles.banner}>
               <IconLabel
-                icon={<Heart size={16} color={colors.accent} strokeWidth={2} />}
+                icon={<Heart size={iconSizes.md} color={colors.accent} strokeWidth={2} />}
                 style={styles.bannerRow}
-                gap={10}
+                gap={space.md}
               >
-                <View style={{ flex: 1 }}>
+                <View style={styles.bannerCopy}>
                   <Label style={styles.bannerTitle}>You missed yesterday.</Label>
-                  <Body>Your streak is paused, not lost. Complete today&apos;s challenge to continue your transformation.</Body>
+                  <Body size="sm">
+                    Your streak is paused, not lost. Complete today&apos;s challenge to continue
+                    your transformation.
+                  </Body>
                 </View>
               </IconLabel>
             </BrandCard>
           )}
 
-          <GradientCard colorsStops={gradients.quote} orb style={{ marginBottom: space.lg }}>
-            <View style={styles.quoteContent}>
-              <Kicker>Today&apos;s reminder</Kicker>
-              <DisplayTitle size="sm" style={styles.quoteText}>
-                &ldquo;{quote.text}&rdquo;
-              </DisplayTitle>
-              {quote.author ? (
-                <Body size="sm" style={styles.quoteAuthor}>- {quote.author}</Body>
-              ) : null}
-            </View>
+          <GradientCard
+            colorsStops={gradients.quote}
+            style={styles.quoteCard}
+            orb={
+              <SoftOrb
+                size={160}
+                blur={64}
+                color={colors.accent}
+                opacity={0.4}
+                top={-40}
+                right={-40}
+              />
+            }
+          >
+            <Kicker style={styles.quoteKicker}>Today&apos;s reminder</Kicker>
+            <DisplayTitle size="sm" style={styles.quoteText}>
+              &ldquo;{quote.text}&rdquo;
+            </DisplayTitle>
+            {quote.author ? (
+              <Body size="sm" style={styles.quoteAuthor}>
+                - {quote.author}
+              </Body>
+            ) : null}
           </GradientCard>
 
           <PillTab tabs={["Today", "Mindset"]} active={tab} onChange={setTab} />
@@ -366,8 +406,11 @@ export default function TodayScreen() {
               colorsStops={gradients.streak}
               style={[styles.statCard, styles.statCardStreak]}
             >
-              <IconLabel icon={<Flame size={14} color={colors.destructive} strokeWidth={2} />} gap={6}>
-                <Kicker>Streak</Kicker>
+              <IconLabel
+                icon={<Flame size={iconSizes.sm} color={colors.destructive} strokeWidth={2} />}
+                gap={space.sm}
+              >
+                <Kicker style={styles.statKicker}>Streak</Kicker>
               </IconLabel>
               <View style={styles.statValueRow}>
                 <StatValue size="lg" style={styles.statValue}>
@@ -377,31 +420,47 @@ export default function TodayScreen() {
                   {streak === 1 ? "day" : "days"}
                 </Body>
               </View>
-              <Body style={{ marginTop: 4 }}>
+              <Text style={styles.statCaption}>
                 {streak === 0 ? "Complete today to start" : "Keep it going"}
-              </Body>
+              </Text>
             </GradientCard>
-            <GradientCard
-              colorsStops={gradients.journey}
-              style={[styles.statCard, styles.statCardJourney]}
-            >
-              <Kicker>Journey</Kicker>
-              <View style={styles.statValueRow}>
-                <StatValue size="lg" style={styles.statValue}>
-                  {journeyPct}
-                </StatValue>
-                <Body size="sm" style={styles.statUnit}>
-                  %
-                </Body>
-              </View>
-              <ProgressBar progress={journeyPct} />
-              <Body style={{ marginTop: 4 }}>
-                {completedDaysCount(allEntries)} of {CHALLENGE_LENGTH} days complete
-              </Body>
-            </GradientCard>
+            <Pressable style={styles.statPressable} onPress={() => router.push("/(app)/overview")}>
+              <GradientCard
+                colorsStops={gradients.journey}
+                style={[styles.statCard, styles.statCardJourney]}
+              >
+                <Kicker style={styles.statKicker}>Journey</Kicker>
+                <View style={styles.statValueRow}>
+                  <StatValue size="lg" style={styles.statValue}>
+                    {journeyPct}
+                  </StatValue>
+                  <Body size="sm" style={styles.statUnit}>
+                    %
+                  </Body>
+                </View>
+                <ProgressBar progress={journeyPct} />
+                <Text style={styles.statCaption}>
+                  {completedDaysCount(allEntries)} of {CHALLENGE_LENGTH} days complete
+                </Text>
+              </GradientCard>
+            </Pressable>
           </View>
 
-          <GradientCard colorsStops={gradients.score} style={styles.scoreCard} orb>
+          <GradientCard
+            colorsStops={gradients.score}
+            style={styles.scoreCard}
+            contentStyle={styles.scoreContent}
+            orb={
+              <SoftOrb
+                size={192}
+                blur={64}
+                color={colors.accent}
+                opacity={0.25}
+                bottom={-64}
+                left={-64}
+              />
+            }
+          >
             <DisplayTitle size="xl" style={styles.scoreWatermark}>
               55
             </DisplayTitle>
@@ -415,9 +474,10 @@ export default function TodayScreen() {
 
           <View style={styles.sectionHeader}>
             <DisplayTitle size="sm" style={styles.sectionTitle}>The Feel Good Five</DisplayTitle>
-            <Kicker>{habits} of 5 done</Kicker>
+            <Kicker style={styles.sectionCount}>{habits} of 5 done</Kicker>
           </View>
 
+          <View style={styles.habitStack}>
           <HabitToggle
             title="Nourish"
             done={!!entry?.nourish}
@@ -454,36 +514,13 @@ export default function TodayScreen() {
             points={16}
           />
 
-          <BrandCard style={{ marginBottom: space.sm, padding: 16 }}>
-            <View style={styles.hydrateRow}>
-              <View style={styles.hydrateDot}>
-                <View style={styles.hydrateDotInner} />
-              </View>
-              <View style={styles.hydrateCopy}>
-                <Label style={styles.habitTitle}>Hydrate</Label>
-                <Body size="sm" style={styles.habitSub}>
-                  {waterLiters}L of {target / 1000}L
-                </Body>
-              </View>
-              <View style={styles.waterRow}>
-                <Pressable
-                  style={styles.waterBtn}
-                  onPress={() => upsertEntry({ water_ml: Math.max(0, (entry?.water_ml ?? 0) - WATER_INCREMENT) })}
-                >
-                  <Text style={styles.waterBtnText}>−</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.waterBtn, styles.waterBtnPrimary]}
-                  onPress={() => upsertEntry({ water_ml: (entry?.water_ml ?? 0) + WATER_INCREMENT })}
-                >
-                  <Text style={[styles.waterBtnText, { color: colors.primaryForeground }]}>+</Text>
-                </Pressable>
-              </View>
-            </View>
-            <View style={styles.hydrateTrack}>
-              <View style={[styles.hydrateFill, { width: `${waterProgress}%` }]} />
-            </View>
-          </BrandCard>
+          <HydrateCard
+            waterMl={entry?.water_ml ?? 0}
+            targetMl={target}
+            points={HYDRATE_POINTS}
+            onChange={(ml) => void upsertEntry({ water_ml: ml })}
+          />
+          </View>
 
           <Pressable
             style={[styles.checkInCard, checkInDone && styles.checkInDone]}
@@ -491,14 +528,18 @@ export default function TodayScreen() {
           >
             <View style={styles.checkInKickerRow}>
               {checkInDone ? (
-                <CheckCircle2 size={14} color={colors.primary} strokeWidth={2} />
+                <CheckCircle2 size={iconSizes.xs} color={colors.primary} strokeWidth={2} />
               ) : (
-                <Lock size={14} color="rgba(248,239,238,0.8)" strokeWidth={2} />
+                <Lock
+                  size={iconSizes.xs}
+                  color={withAlpha(colors.primaryForeground, 0.8)}
+                  strokeWidth={2}
+                />
               )}
               <Kicker
-                style={{
-                  color: checkInDone ? colors.mutedForeground : "rgba(248,239,238,0.8)",
-                }}
+                style={
+                  checkInDone ? styles.checkInKickerDone : styles.checkInKickerOpen
+                }
               >
                 {checkInDone ? "Daily check-in complete" : "Required to complete today"}
               </Kicker>
@@ -512,23 +553,23 @@ export default function TodayScreen() {
             </DisplayTitle>
             <Body
               inverted={!checkInDone}
-              style={[styles.checkInSub, checkInDone && { color: colors.mutedForeground }]}
+              style={[styles.checkInSub, checkInDone && styles.checkInSubDone]}
             >
               Energy, mood, stress, motivation, the daily check-in is what marks Day {day} as
               complete and keeps your streak alive.
             </Body>
-            <View style={styles.checkInOrb} />
+            <View style={[styles.checkInOrb, checkInDone && styles.checkInOrbDone]} />
           </Pressable>
 
-          <BrandCard style={{ marginBottom: space.sm }}>
+          <BrandCard style={styles.photoCard}>
             <View style={styles.photoHeader}>
-              <View style={{ flex: 1 }}>
+              <View style={styles.photoHeaderCopy}>
                 <Kicker>Week {week} of 8</Kicker>
-                <DisplayTitle size="sm" style={{ marginTop: 4 }}>
+                <DisplayTitle size="sm" style={styles.photoTitle}>
                   Weekly progress photo
                 </DisplayTitle>
               </View>
-              <Camera size={20} color={colors.primary} strokeWidth={2} style={{ marginTop: 4 }} />
+              <Camera size={iconSizes.md} color={colors.primary} strokeWidth={2} />
             </View>
             {photoUrl ? (
               <View style={styles.photoMediaWrap}>
@@ -539,7 +580,12 @@ export default function TodayScreen() {
               </View>
             ) : (
               <Pressable style={styles.photoBox} onPress={uploadWeeklyPhoto}>
-                <Camera size={32} color={colors.primary + "99"} strokeWidth={2} style={{ marginBottom: 8 }} />
+                <Camera
+                  size={iconSizes.xl}
+                  color={withAlpha(colors.primary, 0.6)}
+                  strokeWidth={2}
+                  style={styles.photoBoxIcon}
+                />
                 <Label style={styles.photoHint}>Add your Week {week} photo</Label>
                 <Body size="sm" style={styles.photoSub}>
                   Same pose, same light. Future you will thank you.
@@ -551,7 +597,7 @@ export default function TodayScreen() {
               onPress={uploadWeeklyPhoto}
               disabled={uploadingPhoto}
               loading={uploadingPhoto}
-              style={{ marginTop: 16 }}
+              style={[styles.photoCta, uploadingPhoto && { opacity: opacity.disabledSoft }]}
             />
           </BrandCard>
 
@@ -571,20 +617,16 @@ export default function TodayScreen() {
 
       <MoveModal
         visible={showMove}
+        initialType={entry?.move_type ?? MOVE_TYPES[0]}
         minutes={moveMinutes}
         onMinutesChange={setMoveMinutes}
         options={MOVE_TYPES}
-        onPick={(type) => {
+        onSave={(type) => {
           const mins = Math.max(1, parseInt(moveMinutes, 10) || 30);
           return upsertEntry({ move_type: type, move_minutes: mins, move_done: true }).then(() =>
             setShowMove(false),
           );
         }}
-        onClear={() =>
-          upsertEntry({ move_done: false, move_type: null, move_minutes: null }).then(() =>
-            setShowMove(false),
-          )
-        }
         onClose={() => setShowMove(false)}
       />
       <PickerModal
@@ -612,47 +654,95 @@ export default function TodayScreen() {
 
 function MoveModal({
   visible,
+  initialType,
   minutes,
   onMinutesChange,
   options,
-  onPick,
-  onClear,
+  onSave,
   onClose,
 }: {
   visible: boolean;
+  initialType: string;
   minutes: string;
   onMinutesChange: (v: string) => void;
   options: readonly string[];
-  onPick: (v: string) => void;
-  onClear: () => void;
+  onSave: (type: string) => void | Promise<void>;
   onClose: () => void;
 }) {
+  const [selectedType, setSelectedType] = useState(initialType);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setSelectedType(initialType);
+      setSaving(false);
+    }
+  }, [visible, initialType]);
+
+  const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await onSave(selectedType);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
-        <ScrollView contentContainerStyle={styles.modalCard}>
-          <DisplayTitle size="sm" style={{ marginBottom: 16 }}>Log movement</DisplayTitle>
-          <Label style={styles.scaleLabel}>Duration (minutes)</Label>
+        <Pressable style={styles.modalDismiss} onPress={onClose} />
+        <ScrollView
+          style={styles.modalSheet}
+          contentContainerStyle={styles.modalCardInner}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          <View style={styles.moveHeader}>
+            <DisplayTitle size="sm" style={styles.moveTitle}>
+              Log movement
+            </DisplayTitle>
+            <Pressable onPress={onClose} style={styles.moveClose} hitSlop={8}>
+              <Text style={styles.moveCloseText}>✕</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.moveGrid}>
+            {options.map((o) => {
+              const selected = o === selectedType;
+              return (
+                <Pressable
+                  key={o}
+                  onPress={() => setSelectedType(o)}
+                  style={[styles.movePill, selected && styles.movePillSelected]}
+                >
+                  <Text style={[styles.movePillText, selected && styles.movePillTextSelected]}>
+                    {o}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Kicker style={styles.moveDurationLabel}>Duration (minutes)</Kicker>
           <TextInput
-            style={[styles.notesInput, { minHeight: 48 }]}
+            style={styles.moveMinutesInput}
             keyboardType="number-pad"
             value={minutes}
             onChangeText={onMinutesChange}
             placeholder="30"
             placeholderTextColor={colors.mutedForeground}
           />
-          {options.map((o) => (
-            <Pressable key={o} style={styles.modalOption} onPress={() => onPick(o)}>
-              <Body style={styles.modalOptionText}>{o}</Body>
-            </Pressable>
-          ))}
-          <Pressable onPress={onClear} style={{ marginTop: 8 }}>
-            <Body style={styles.modalClear}>Clear move</Body>
-          </Pressable>
-          <Pressable onPress={onClose}>
-            <Body style={styles.modalCancel}>Cancel</Body>
-          </Pressable>
+
+          <PrimaryButton
+            label="Save"
+            onPress={handleSave}
+            loading={saving}
+            style={styles.moveSave}
+          />
         </ScrollView>
+        <KeyboardAccessoryBar />
       </View>
     </Modal>
   );
@@ -729,9 +819,15 @@ function CheckInModal({
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
-        <ScrollView contentContainerStyle={styles.modalCard}>
-          <DisplayTitle size="sm" style={{ marginBottom: 8 }}>Daily check-in</DisplayTitle>
-          <Body style={{ marginBottom: 16 }}>
+        <ScrollView
+          contentContainerStyle={styles.modalCard}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          <DisplayTitle size="sm" style={styles.modalTitle}>
+            Daily check-in
+          </DisplayTitle>
+          <Body size="sm" style={styles.modalIntro}>
             Energy, mood, stress and motivation are required to complete the day.
           </Body>
           <Scale label="Energy" value={energy} onChange={setEnergy} />
@@ -751,6 +847,7 @@ function CheckInModal({
           <PrimaryButton
             label="Submit now"
             disabled={!ready}
+            style={styles.modalSubmit}
             onPress={() =>
               onSave({
                 energy,
@@ -766,6 +863,21 @@ function CheckInModal({
             <Body style={styles.modalCancel}>Cancel</Body>
           </Pressable>
         </ScrollView>
+        <KeyboardAccessoryBar
+          primaryLabel="Submit now"
+          onPrimaryPress={() => {
+            if (!ready) return;
+            void onSave({
+              energy,
+              mood,
+              stress,
+              motivation,
+              sleep_quality: sleep,
+              notes: notes || null,
+            });
+          }}
+          primaryDisabled={!ready}
+        />
       </View>
     </Modal>
   );
@@ -781,10 +893,11 @@ function Scale({
   onChange: (n: number) => void;
 }) {
   return (
-    <View style={{ marginBottom: 12 }}>
-      <Label style={styles.scaleLabel}>
-        {label} {value ?? "-"}/10
-      </Label>
+    <View style={styles.scaleBlock}>
+      <View style={styles.scaleHeader}>
+        <Label style={styles.scaleLabel}>{label}</Label>
+        <Text style={styles.scaleValue}>{value ?? "-"}/10</Text>
+      </View>
       <View style={styles.scaleRow}>
         {Array.from({ length: 10 }).map((_, i) => {
           const n = i + 1;
@@ -803,27 +916,39 @@ function Scale({
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  scroll: { paddingBottom: 120, paddingTop: space.lg },
-  header: { flexDirection: "row", alignItems: "flex-start", marginBottom: space.lg },
-  dayRow: { marginTop: 4, flexDirection: "row", alignItems: "flex-end", gap: 8, flexWrap: "wrap" },
-  dayTitle: { fontSize: 28 },
+  scroll: { paddingBottom: 40, paddingTop: space.xl },
+  header: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: space.lg,
+    marginBottom: space.p6,
+  },
+  headerCopy: { flex: 1 },
+  headerDate: { marginTop: space.sm, marginBottom: space.xs },
+  dayRow: { flexDirection: "row", alignItems: "flex-end", gap: space.sm, flexWrap: "wrap" },
+  dayTitle: {
+    fontSize: typeScale.display3xl.fontSize,
+    lineHeight: typeScale.display3xl.lineHeight,
+    letterSpacing: typeScale.display3xl.letterSpacing,
+  },
   dayMuted: {
-    fontSize: 14,
+    fontSize: typeScale.bodyLg.fontSize,
     fontStyle: "normal",
-    lineHeight: 18,
+    lineHeight: 24,
     marginBottom: 3,
     color: colors.mutedForeground,
   },
   avatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary + "1A",
+    borderRadius: radius.full,
+    backgroundColor: withAlpha(colors.primary, 0.1),
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: colors.ringPrimary,
+    borderWidth: borders.hairline,
+    borderColor: withAlpha(colors.primary, 0.2),
   },
   avatarImage: {
     width: 40,
@@ -832,47 +957,90 @@ const styles = StyleSheet.create({
   avatarText: {
     fontFamily: fonts.sansSemi,
     color: colors.primary,
-    fontSize: 13,
+    fontSize: typeScale.bodySm.fontSize,
   },
   revealCta: {
-    backgroundColor: colors.primary,
-    borderRadius: radius["3xl"],
-    padding: 20,
-    marginBottom: space.md,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space.lg,
+    borderRadius: radius["2xl"],
+    padding: space.p5,
+    borderWidth: borders.hairline,
+    borderColor: withAlpha(colors.primary, 0.2),
+    marginBottom: space.lg,
   },
+  revealCopy: { flex: 1 },
+  revealKicker: { color: withAlpha(colors.primaryForeground, 0.8) },
   revealTitle: {
     color: colors.primaryForeground,
-    marginTop: 4,
+    marginTop: space.xs,
   },
-  banner: { marginBottom: space.md, borderColor: colors.accent + "4D" },
-  bannerRow: { alignItems: "flex-start" },
-  bannerTitle: { marginBottom: 4 },
-  quoteContent: {
-    zIndex: 1,
+  revealArrow: {
+    fontFamily: fonts.sans,
+    fontSize: typeScale.quote.fontSize,
+    lineHeight: typeScale.quote.lineHeight,
+    color: colors.primaryForeground,
+  },
+  banner: {
+    marginBottom: space.lg,
+    backgroundColor: withAlpha(colors.accent, 0.1),
+    borderColor: withAlpha(colors.accent, 0.3),
+    borderRadius: radius["2xl"],
+    padding: space.p4,
+  },
+  bannerRow: { alignItems: "flex-start", gap: space.md },
+  bannerCopy: { flex: 1 },
+  bannerTitle: { marginBottom: 2 },
+  quoteCard: {
+    marginBottom: space.p6,
+    padding: space.p6,
+  },
+  quoteKicker: {
+    marginBottom: space.md,
+    color: colors.primary,
   },
   quoteText: {
-    marginTop: 8,
-    fontSize: 18,
-    lineHeight: 26,
+    fontSize: typeScale.bodyLg.fontSize,
+    lineHeight: 25,
+    letterSpacing: typeScale.displayLg.letterSpacing,
     flexShrink: 1,
-    paddingRight: 24,
     includeFontPadding: false,
   },
-  quoteAuthor: { marginTop: 8 },
-  statsRow: { flexDirection: "row", gap: 10, marginVertical: space.lg },
-  statCard: { flex: 1, padding: 16 },
-  statCardStreak: { borderColor: colors.destructive + "4D" },
-  statCardJourney: { borderColor: colors.lime + "80" },
-  scoreCard: { marginBottom: space.xl, overflow: "hidden" },
+  quoteAuthor: { marginTop: space.md },
+  statsRow: { flexDirection: "row", gap: space.md, marginBottom: space.p6 },
+  statPressable: { flex: 1 },
+  statCard: {
+    flex: 1,
+    padding: space.p4,
+    borderRadius: radius["2xl"],
+  },
+  statCardStreak: { borderColor: withAlpha(colors.destructive, 0.3) },
+  statCardJourney: { borderColor: withAlpha(colors.lime, 0.5) },
+  statKicker: { color: colors.foreground70 },
+  statCaption: {
+    marginTop: space.xs,
+    fontFamily: fonts.sans,
+    fontSize: typeScale.meta.fontSize,
+    lineHeight: typeScale.meta.lineHeight,
+    color: colors.mutedForeground,
+  },
+  scoreCard: {
+    marginBottom: space["2xl"],
+    padding: space.p8,
+    overflow: "hidden",
+  },
+  scoreContent: { alignItems: "center" },
   scoreWatermark: {
     position: "absolute",
-    top: 8,
-    right: 12,
-    fontSize: 60,
+    top: space.lg,
+    right: space.lg,
+    fontSize: typeScale.display6xl.fontSize,
+    lineHeight: typeScale.display6xl.lineHeight,
     opacity: 0.05,
     zIndex: 0,
   },
-  statValueRow: { flexDirection: "row", alignItems: "flex-end", gap: 4, marginTop: 4 },
+  statValueRow: { flexDirection: "row", alignItems: "flex-end", gap: space.xs, marginTop: space.xs },
   statValue: { lineHeight: 30 },
   statUnit: {
     fontStyle: "normal",
@@ -882,57 +1050,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "baseline",
-    marginBottom: space.md,
-    gap: 12,
+    marginBottom: space.lg,
+    gap: space.md,
   },
   sectionTitle: { marginBottom: 0 },
-  habitTitle: { fontSize: 14 },
-  habitSub: { marginTop: 2 },
-  hydrateRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 14 },
-  hydrateDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "rgba(34,34,34,0.3)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  hydrateDotInner: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "rgba(34,34,34,0.2)",
-  },
-  hydrateCopy: { flex: 1 },
-  waterRow: { flexDirection: "row", gap: 8 },
-  waterBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.muted,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  waterBtnPrimary: { backgroundColor: colors.primary },
-  waterBtnText: { fontSize: 16, color: colors.foreground, fontFamily: fonts.sansSemi },
-  hydrateTrack: {
-    height: 6,
-    borderRadius: 999,
-    backgroundColor: "rgba(34,34,34,0.1)",
-    overflow: "hidden",
-  },
-  hydrateFill: {
-    height: "100%",
-    backgroundColor: colors.primary,
-    borderRadius: 999,
-  },
+  sectionCount: { letterSpacing: 0 },
+  habitStack: { gap: space.md, marginBottom: space["2xl"] },
   checkInCard: {
     backgroundColor: colors.primary,
     borderRadius: radius["3xl"],
-    padding: 24,
-    marginVertical: space.md,
-    borderWidth: 1,
+    padding: space.p6,
+    marginBottom: space["2xl"],
+    borderWidth: borders.hairline,
     borderColor: colors.primary,
     overflow: "hidden",
     position: "relative",
@@ -941,26 +1070,50 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderColor: colors.ringHairline,
   },
-  checkInKickerRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
+  checkInKickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm,
+    marginBottom: space.xs,
+  },
+  checkInKickerOpen: { color: withAlpha(colors.primaryForeground, 0.8) },
+  checkInKickerDone: { color: colors.mutedForeground },
   checkInTitle: {
-    marginTop: 4,
-    marginBottom: 8,
+    fontSize: typeScale.quote.fontSize,
+    lineHeight: typeScale.quote.lineHeight,
+    letterSpacing: typeScale.quote.letterSpacing,
+    marginTop: space.xs,
+    marginBottom: space.sm,
   },
   checkInSub: {
-    color: "rgba(248,239,238,0.8)",
-    lineHeight: 20,
+    color: withAlpha(colors.primaryForeground, 0.8),
+    lineHeight: 23,
   },
+  checkInSubDone: { color: colors.mutedForeground },
   checkInOrb: {
     position: "absolute",
-    right: -40,
-    bottom: -40,
-    width: 128,
-    height: 128,
-    borderRadius: 64,
+    right: -29,
+    bottom: -29,
+    width: 102,
+    height: 102,
+    borderRadius: radius.full,
     backgroundColor: colors.primaryForeground,
     opacity: 0.1,
   },
-  photoHeader: { flexDirection: "row", alignItems: "flex-start", marginBottom: 16 },
+  checkInOrbDone: { backgroundColor: colors.foreground },
+  photoCard: {
+    borderRadius: radius["3xl"],
+    padding: space.p6,
+  },
+  photoHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space.md,
+    marginBottom: space.lg,
+  },
+  photoHeaderCopy: { flex: 1 },
+  photoTitle: { marginTop: space.xs },
   photoMediaWrap: {
     width: "100%",
     alignSelf: "stretch",
@@ -969,16 +1122,18 @@ const styles = StyleSheet.create({
   photoBox: {
     width: "100%",
     alignSelf: "stretch",
-    borderWidth: 2,
+    borderWidth: borders.thick,
     borderStyle: "dashed",
-    borderColor: "rgba(34,34,34,0.3)",
+    borderColor: colors.ringPrimary,
     borderRadius: radius["2xl"],
     aspectRatio: 4 / 5,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 24,
-    backgroundColor: colors.background,
+    gap: space.sm,
+    paddingHorizontal: space.p6,
   },
+  photoBoxIcon: { marginBottom: 0 },
+  photoCta: { paddingVertical: space.md, marginTop: space.lg },
   photoPreview: {
     width: "100%",
     alignSelf: "stretch",
@@ -988,21 +1143,20 @@ const styles = StyleSheet.create({
   },
   photoBadge: {
     position: "absolute",
-    top: 12,
-    left: 12,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    top: space.md,
+    left: space.md,
+    backgroundColor: withAlpha(colors.pureBlack, 0.5),
     borderRadius: radius.full,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
   },
   photoBadgeText: { color: colors.white },
   photoHint: { textAlign: "center" },
   photoSub: {
     textAlign: "center",
-    marginTop: 6,
     maxWidth: 220,
   },
-  linkRow: { paddingVertical: 16, alignItems: "center" },
+  linkRow: { marginTop: space.lg, paddingVertical: 16, alignItems: "center" },
   linkText: { letterSpacing: 2 },
   completeBadge: {
     textAlign: "center",
@@ -1012,24 +1166,112 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 28,
     right: 20,
+    height: 38,
+    justifyContent: "center",
     backgroundColor: colors.card,
     borderRadius: radius.full,
     paddingHorizontal: 16,
-    paddingVertical: 10,
     borderWidth: 1,
     borderColor: colors.ringHairline,
   },
-  struggleBtnText: { fontSize: 12 },
-  modalOverlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: "flex-end" },
+  struggleBtnText: {
+    fontSize: typeScale.bodySm.fontSize,
+    lineHeight: typeScale.bodySm.lineHeight,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: withAlpha(colors.pureBlack, 0.4),
+    justifyContent: "flex-end",
+  },
+  modalDismiss: { ...StyleSheet.absoluteFillObject },
+  modalSheet: {
+    maxHeight: "90%",
+    backgroundColor: colors.background,
+    borderTopLeftRadius: radius["3xl"],
+    borderTopRightRadius: radius["3xl"],
+    zIndex: 1,
+  },
   modalCard: {
     backgroundColor: colors.background,
     borderTopLeftRadius: radius["3xl"],
     borderTopRightRadius: radius["3xl"],
-    padding: 24,
-    maxHeight: "85%",
+    padding: space.p6,
+    maxHeight: "90%",
+  },
+  modalCardInner: {
+    padding: space.p6,
+  },
+  moveHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: space.xl,
+  },
+  moveTitle: { flex: 1, paddingRight: space.md },
+  moveClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.muted,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  moveCloseText: {
+    fontSize: typeScale.bodySm.fontSize,
+    color: colors.foreground,
+    lineHeight: 16,
+  },
+  moveGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: space.sm,
+    marginBottom: space.xl,
+  },
+  movePill: {
+    width: "31%",
+    borderRadius: radius.xl,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.ringHairline,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  movePillSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  movePillText: {
+    fontFamily: fonts.sansSemi,
+    fontSize: typeScale.bodySm.fontSize,
+    lineHeight: typeScale.bodySm.lineHeight,
+    color: colors.foreground,
+    textAlign: "center",
+  },
+  movePillTextSelected: {
+    color: colors.primaryForeground,
+  },
+  moveDurationLabel: {
+    marginBottom: space.sm,
+  },
+  moveMinutesInput: {
+    backgroundColor: colors.card,
+    borderRadius: radius["2xl"],
+    paddingHorizontal: space.inputX,
+    paddingVertical: space.md,
+    fontFamily: fonts.sans,
+    fontSize: typeScale.input.fontSize,
+    lineHeight: typeScale.input.lineHeight,
+    color: colors.foreground,
+    borderWidth: 1,
+    borderColor: colors.ringHairline,
+  },
+  moveSave: {
+    marginTop: space.xl,
   },
   modalOption: {
-    paddingVertical: 14,
+    paddingVertical: space.inputY,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -1043,24 +1285,41 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: colors.destructive,
   },
-  scaleLabel: { marginBottom: 6 },
-  scaleRow: { flexDirection: "row", gap: 4 },
+  modalTitle: { marginBottom: space.sm },
+  modalIntro: { marginBottom: space.p5 },
+  modalSubmit: { paddingVertical: space.md },
+  scaleBlock: { marginBottom: space.p5 },
+  scaleHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: space.md,
+    marginBottom: space.sm,
+  },
+  scaleLabel: { flex: 1, marginBottom: space.sm },
+  scaleValue: {
+    fontFamily: fonts.kicker,
+    fontSize: typeScale.bodySm.fontSize,
+    color: colors.mutedForeground,
+  },
+  scaleRow: { flexDirection: "row", gap: space.xs },
   scaleDot: {
     flex: 1,
-    height: 28,
-    borderRadius: 6,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.ringHairline,
+    height: 32,
+    borderRadius: radius.md,
+    backgroundColor: colors.muted,
   },
-  scaleDotActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  scaleDotActive: { backgroundColor: colors.primary },
   notesInput: {
     backgroundColor: colors.card,
-    borderRadius: radius.xl,
-    padding: 12,
+    borderRadius: radius["2xl"],
+    paddingHorizontal: space.inputX,
+    paddingVertical: space.md,
     minHeight: 80,
-    marginBottom: 12,
+    marginBottom: space.p6,
     fontFamily: fonts.sans,
+    fontSize: typeScale.input.fontSize,
+    lineHeight: typeScale.input.lineHeight,
     color: colors.foreground,
     borderWidth: 1,
     borderColor: colors.ringHairline,

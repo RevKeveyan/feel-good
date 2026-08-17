@@ -1,33 +1,13 @@
+import type { DailyEntry } from "@feelgood/shared";
+
 export const CHALLENGE_LENGTH = 55;
 
-export type DailyEntry = {
-  id: string;
-  user_id: string;
-  entry_date: string;
-  nourish: boolean;
-  fuel: boolean;
-  move_done: boolean;
-  move_type: string | null;
-  move_minutes: number | null;
-  mindset: boolean;
-  mindset_type: string | null;
-  water_ml: number;
-  energy: number | null;
-  mood: number | null;
-  stress: number | null;
-  motivation: number | null;
-  sleep_quality: number | null;
-  notes: string | null;
-};
-
-export type Profile = {
-  id: string;
-  display_name: string | null;
-  water_target_ml: number;
-  challenge_start_date: string;
-  onboarding_completed_at: string | null;
-  avatar_path: string | null;
-};
+export type { DailyEntry, Profile, DayAvailability } from "@feelgood/shared";
+export {
+  entryDateForChallengeDay,
+  challengeDayForEntryDate,
+  dayAvailability,
+} from "@feelgood/shared";
 
 export function todayISO(): string {
   const d = new Date();

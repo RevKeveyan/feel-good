@@ -13,7 +13,7 @@ import { router } from "expo-router";
 import { isRunningInExpoGo } from "expo";
 import * as ImagePicker from "expo-image-picker";
 import { ArrowLeft } from "@/components/ui/icons";
-import { CONTACT_EMAIL, type Profile } from "@feelgood/shared";
+import { CHALLENGE_LENGTH, CONTACT_EMAIL, type Profile } from "@feelgood/shared";
 import { deleteAccount } from "@/lib/api";
 import { signOut } from "@/lib/auth";
 import {
@@ -25,7 +25,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { resolveAvatarUrl } from "@/lib/avatar";
 import { alertMediaPermissionNeeded } from "@/lib/media-permissions";
-import { extensionForContentType, formatUploadError, guessImageContentType, uploadLocalImage } from "@/lib/upload-image";
+import { formatUploadError, uploadLocalImage } from "@/lib/upload-image";
 import {
   Body,
   BrandCard,
@@ -37,7 +37,7 @@ import {
   PrimaryButton,
   Screen,
 } from "@/components/ui";
-import { colors, fonts, radius, space } from "@/src/theme";
+import { borders, colors, fonts, radius, space, typeScale, withAlpha } from "@/src/theme";
 
 export default function SettingsScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -164,21 +164,19 @@ export default function SettingsScreen() {
             quality: 0.8,
             allowsEditing: true,
             aspect: [1, 1],
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ["images"],
           });
     if (result.canceled || !result.assets[0]) return;
 
     setUploading(true);
     try {
       const asset = result.assets[0];
-      const mimeType = asset.mimeType?.trim() || guessImageContentType(asset.fileName ?? asset.uri);
-      const ext = extensionForContentType(mimeType);
-      const path = `${auth.user.id}/avatar.${ext}`;
+      const path = `${auth.user.id}/avatar.jpg`;
       await uploadLocalImage({
         bucket: "avatars",
         path,
         uri: asset.uri,
-        contentType: mimeType,
+        contentType: "image/jpeg",
         upsert: true,
       });
 
@@ -243,6 +241,12 @@ export default function SettingsScreen() {
           />
         </BrandCard>
 
+        <Pressable onPress={() => router.push("/(app)/progress")}>
+          <BrandCard style={styles.row}>
+            <Label style={styles.rowTitle}>My progress</Label>
+            <Body>Vision board and all {CHALLENGE_LENGTH} days</Body>
+          </BrandCard>
+        </Pressable>
         <Pressable onPress={enableReminders}>
           <BrandCard style={styles.row}>
             <Label style={styles.rowTitle}>Daily reminders</Label>
@@ -283,7 +287,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { paddingTop: space.lg, paddingBottom: 48, gap: 10 },
+  container: { paddingTop: space.lg, paddingBottom: space.p6, gap: space.md },
   row: { marginBottom: 0 },
   rowTitle: { marginBottom: 2 },
   avatarCard: { marginBottom: space.sm },
@@ -291,26 +295,27 @@ const styles = StyleSheet.create({
   avatar: {
     width: 72,
     height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.primary + "1A",
+    borderRadius: radius.full,
+    backgroundColor: withAlpha(colors.primary, 0.1),
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: colors.ringPrimary,
+    borderWidth: borders.hairline,
+    borderColor: withAlpha(colors.primary, 0.2),
   },
   avatarImage: { width: 72, height: 72 },
   avatarText: {
     fontFamily: fonts.sansSemi,
     color: colors.primary,
-    fontSize: 22,
+    fontSize: typeScale.display2xl.fontSize - 2,
+    lineHeight: typeScale.display2xl.lineHeight - 2,
   },
   danger: {
-    marginTop: 24,
-    borderWidth: 1,
-    borderColor: colors.destructive + "80",
+    marginTop: space.xl,
+    borderWidth: borders.hairline,
+    borderColor: withAlpha(colors.destructive, 0.5),
     borderRadius: radius["2xl"],
-    padding: 16,
+    padding: space.lg,
     backgroundColor: colors.card,
   },
   dangerText: {

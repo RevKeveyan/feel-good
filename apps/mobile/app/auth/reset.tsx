@@ -1,18 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Pressable,
   StyleSheet,
   TextInput,
   View,
+  type TextInput as TextInputType,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import {
+  isPasswordRecoveryPending,
   requestPasswordReset,
+  signOut,
   updatePassword,
   verifyRecoveryOtp,
 } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 import {
   BrandWordmark,
   Body,
@@ -22,7 +25,8 @@ import {
   PrimaryButton,
   SoftOrbs,
 } from "@/components/ui";
-import { colors, fonts, radius, space } from "@/src/theme";
+import { KeyboardAccessoryBar, KeyboardScreen } from "@/components/KeyboardScreen";
+import { borders, colors, fonts, radius, space, typeScale } from "@/src/theme";
 
 const MIN_PASSWORD = 6;
 
@@ -32,16 +36,37 @@ export default function ResetPasswordScreen() {
   const params = useLocalSearchParams<{ email?: string }>();
   const paramEmail = typeof params.email === "string" ? params.email : "";
 
-  const [step, setStep] = useState<Step>("code");
+  const [step, setStep] = useState<Step>(() =>
+    isPasswordRecoveryPending() ? "password" : "code",
+  );
   const [email, setEmail] = useState(paramEmail);
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
+  const codeRef = useRef<TextInputType>(null);
+  const confirmRef = useRef<TextInputType>(null);
 
   useEffect(() => {
     if (paramEmail) setEmail(paramEmail);
   }, [paramEmail]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      if (isPasswordRecoveryPending()) {
+        if (!cancelled) setStep("password");
+        return;
+      }
+      const { data } = await supabase.auth.getSession();
+      if (!cancelled && data.session && isPasswordRecoveryPending()) {
+        setStep("password");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleVerifyCode() {
     const trimmedEmail = email.trim();
@@ -93,9 +118,18 @@ export default function ResetPasswordScreen() {
     }
     setLoading(true);
     try {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        setStep("code");
+        Alert.alert(
+          "Session expired",
+          "Enter a new one-time code from your email, then set your password.",
+        );
+        return;
+      }
       await updatePassword(password);
       Alert.alert("Password updated", "You're signed in with your new password.");
-      router.replace("/(app)/today");
+      router.replace("/(app)/overview");
     } catch (e) {
       Alert.alert("Error", e instanceof Error ? e.message : "Could not update password");
     } finally {
@@ -103,23 +137,48 @@ export default function ResetPasswordScreen() {
     }
   }
 
+  async function handleBackToSignIn() {
+    setLoading(true);
+    try {
+      await signOut();
+    } catch {
+      /* still leave reset flow */
+    } finally {
+      setLoading(false);
+      router.replace("/auth");
+    }
+  }
+
+  const accessoryLabel = step === "code" ? "Verify code" : "Update password";
+  const accessoryAction = step === "code" ? handleVerifyCode : handleSubmitPassword;
+
   return (
-    <SafeAreaView style={styles.container}>
-      <SoftOrbs />
+    <KeyboardScreen
+      style={styles.container}
+      contentContainerStyle={styles.scrollInner}
+      background={<SoftOrbs />}
+      accessory={
+        <KeyboardAccessoryBar
+          primaryLabel={accessoryLabel}
+          onPrimaryPress={accessoryAction}
+          primaryDisabled={loading}
+        />
+      }
+    >
       <View style={styles.content}>
         <BrandWordmark size="md" />
         <View style={styles.headingBlock}>
-          <Kicker style={{ textAlign: "center" }}>
+          <Kicker style={styles.kicker}>
             {step === "code" ? "Check your email" : "Almost there"}
           </Kicker>
-          <DisplayTitle style={styles.title}>
+          <DisplayTitle size="md" style={styles.title}>
             {step === "code" ? "Enter reset code" : "Set new password"}
           </DisplayTitle>
         </View>
 
         {step === "code" ? (
           <>
-            <Body style={styles.message}>
+            <Body size="sm" style={styles.message}>
               Enter the one-time code we sent to your email. Links are not required.
             </Body>
             <TextInput
@@ -131,8 +190,12 @@ export default function ResetPasswordScreen() {
               value={email}
               onChangeText={setEmail}
               editable={!paramEmail}
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => codeRef.current?.focus()}
             />
             <TextInput
+              ref={codeRef}
               style={styles.input}
               placeholder="One-time code"
               placeholderTextColor={colors.mutedForeground}
@@ -148,13 +211,16 @@ export default function ResetPasswordScreen() {
               style={{ marginTop: 8 }}
             />
             <Pressable onPress={handleResend} disabled={loading}>
-              <Body style={styles.switchText}>
+              <Body size="sm" style={styles.switchText}>
                 <Label style={styles.switchLink}>Resend code</Label>
               </Body>
             </Pressable>
           </>
         ) : (
           <>
+            <Body size="sm" style={styles.message}>
+              Choose a new password for your account. You will stay signed in after updating.
+            </Body>
             <TextInput
               style={styles.input}
               placeholder="New password"
@@ -162,14 +228,20 @@ export default function ResetPasswordScreen() {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => confirmRef.current?.focus()}
             />
             <TextInput
+              ref={confirmRef}
               style={styles.input}
               placeholder="Confirm password"
               placeholderTextColor={colors.mutedForeground}
               value={confirm}
               onChangeText={setConfirm}
               secureTextEntry
+              returnKeyType="done"
+              onSubmitEditing={handleSubmitPassword}
             />
             <PrimaryButton
               label="Update password"
@@ -180,52 +252,61 @@ export default function ResetPasswordScreen() {
           </>
         )}
 
-        <Pressable onPress={() => router.replace("/auth")}>
-          <Body style={styles.switchText}>
+        <Pressable onPress={handleBackToSignIn} disabled={loading}>
+          <Body size="sm" style={styles.switchText}>
             <Label style={styles.switchLink}>Back to Sign in</Label>
           </Body>
         </Pressable>
       </View>
-    </SafeAreaView>
+    </KeyboardScreen>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: colors.background,
+  },
+  scrollInner: {
     justifyContent: "center",
   },
   content: {
     paddingHorizontal: space.screenX,
     zIndex: 1,
   },
-  headingBlock: { marginTop: space.xl, marginBottom: space.lg },
+  headingBlock: { marginTop: space["2xl"], marginBottom: space.p6 },
+  kicker: {
+    textAlign: "center",
+    letterSpacing: 2.5,
+  },
   title: {
     textAlign: "center",
-    marginTop: 8,
-    fontSize: 34,
+    marginTop: space.md,
   },
   message: {
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: space.p5,
     color: colors.mutedForeground,
   },
   input: {
     backgroundColor: colors.card,
     borderRadius: radius["2xl"],
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 12,
-    borderWidth: 1,
+    paddingHorizontal: space.inputX,
+    paddingVertical: space.inputY,
+    marginBottom: space.md,
+    borderWidth: borders.hairline,
     borderColor: colors.ringHairline,
     fontFamily: fonts.sans,
     color: colors.foreground,
-    fontSize: 14,
+    fontSize: typeScale.input.fontSize,
+    lineHeight: typeScale.input.lineHeight,
   },
   inputReadonly: {
     opacity: 0.85,
   },
-  switchText: { textAlign: "center", marginTop: 20 },
-  switchLink: { textDecorationLine: "underline" },
+  switchText: { textAlign: "center", marginTop: space.p6 },
+  switchLink: {
+    textDecorationLine: "underline",
+    fontSize: typeScale.bodySm.fontSize,
+    lineHeight: typeScale.bodySm.lineHeight,
+  },
 });

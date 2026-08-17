@@ -1,25 +1,28 @@
+import { memo } from "react";
 import { Image, StyleSheet, View } from "react-native";
 
 type Props = {
   size?: "sm" | "md" | "lg";
 };
 
-const WIDTH = { sm: 160, md: 240, lg: 300 } as const;
-const HEIGHT = { sm: 88, md: 132, lg: 165 } as const;
+const SOURCE = require("../../assets/brand/tfgs-wordmark.png");
 
-export function BrandWordmark({ size = "md" }: Props) {
+export const BrandWordmark = memo(function BrandWordmark({ size = "md" }: Props) {
   return (
     <View style={styles.wrap}>
       <Image
-        source={require("../../assets/brand/tfgs-wordmark.png")}
-        style={{ width: WIDTH[size], height: HEIGHT[size] }}
+        source={SOURCE}
+        style={styles[size]}
         resizeMode="contain"
         accessibilityLabel="The Feel Good Society"
       />
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   wrap: { alignItems: "center" },
+  sm: { width: 160, height: 88 },
+  md: { width: 240, height: 132 },
+  lg: { width: 300, height: 165 },
 });

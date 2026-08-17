@@ -1,8 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Database, TablesInsert } from "@/integrations/supabase/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-async function assertAdmin(supabase: any, userId: string) {
+async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
   const { data, error } = await supabase.rpc("has_role", {
     _user_id: userId,
     _role: "admin",
@@ -21,13 +23,13 @@ export const claimFirstAdmin = createServerFn({ method: "POST" })
     const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { count, error: cErr } = await supabaseAdmin
-      .from("user_roles" as any)
+      .from("user_roles")
       .select("id", { count: "exact", head: true })
       .eq("role", "admin");
     if (cErr) throw new Error(cErr.message);
     if ((count ?? 0) > 0) return { granted: false as const };
     const { error } = await supabaseAdmin
-      .from("user_roles" as any)
+      .from("user_roles")
       .insert({ user_id: userId, role: "admin" });
     if (error) throw new Error(error.message);
     return { granted: true as const };
@@ -160,8 +162,6 @@ export const seedMockData = createServerFn({ method: "POST" })
       testimonialsSeeded: inserted?.length ?? 0,
     };
   });
-
-// -------- Multi-user seeding for end-to-end testing --------
 
 type MockUser = {
   email: string;
@@ -310,7 +310,19 @@ export const seedMultiUserMockData = createServerFn({ method: "POST" })
 
       // Wheels
       if (mu.wheels.length > 0) {
-        const rows = mu.wheels.map((w) => ({ user_id: userId!, phase: w.phase, ...w.values })) as any;
+        const rows: TablesInsert<"transformation_wheel">[] = mu.wheels.map((w) => ({
+          user_id: userId!,
+          phase: w.phase,
+          confidence: w.values.confidence ?? 5,
+          consistency: w.values.consistency ?? 5,
+          digestion: w.values.digestion ?? 5,
+          energy: w.values.energy ?? 5,
+          fitness: w.values.fitness ?? 5,
+          mood: w.values.mood ?? 5,
+          motivation: w.values.motivation ?? 5,
+          overall_health: w.values.overall_health ?? 5,
+          stress: w.values.stress ?? 5,
+        }));
         const { error } = await supabaseAdmin
           .from("transformation_wheel")
           .upsert(rows, { onConflict: "user_id,phase" });

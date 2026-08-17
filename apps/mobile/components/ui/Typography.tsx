@@ -1,15 +1,29 @@
 import { Text, type TextProps, type TextStyle } from "react-native";
-import { bodySizes, colors, displaySizes, fonts } from "@/src/theme";
+import { colors, fonts, typeScale } from "@/src/theme";
 
-type DisplaySize = keyof typeof displaySizes;
-type BodySize = keyof typeof bodySizes;
+type DisplaySize = "sm" | "md" | "lg" | "xl";
+type BodySize = "sm" | "md" | "base" | "lg";
 type StatSize = "sm" | "md" | "lg";
 
-const statSizes: Record<StatSize, number> = {
-  sm: 18,
-  md: 24,
-  lg: 28,
-};
+const displayMap = {
+  sm: typeScale.displayXl,
+  md: typeScale.display3xl,
+  lg: typeScale.display4xl,
+  xl: typeScale.display5xl,
+} as const;
+
+const bodyMap = {
+  sm: typeScale.bodySm,
+  md: typeScale.bodyMd,
+  base: typeScale.bodyBase,
+  lg: typeScale.bodyLg,
+} as const;
+
+const statMap = {
+  sm: typeScale.statSm,
+  md: typeScale.statMd,
+  lg: typeScale.statLg,
+} as const;
 
 export function DisplayTitle({
   size = "md",
@@ -17,6 +31,7 @@ export function DisplayTitle({
   style,
   ...props
 }: TextProps & { size?: DisplaySize; inverted?: boolean }) {
+  const scale = displayMap[size];
   return (
     <Text
       {...props}
@@ -24,9 +39,10 @@ export function DisplayTitle({
         {
           fontFamily: fonts.display,
           fontStyle: "italic",
-          fontSize: displaySizes[size],
+          fontSize: scale.fontSize,
+          lineHeight: scale.lineHeight,
+          letterSpacing: scale.letterSpacing,
           color: inverted ? colors.primaryForeground : colors.foreground,
-          letterSpacing: -0.5,
         },
         style as TextStyle,
       ]}
@@ -40,9 +56,10 @@ export function Kicker({ inverted = false, style, ...props }: TextProps & { inve
       {...props}
       style={[
         {
-          fontFamily: fonts.mono,
-          fontSize: 10,
-          letterSpacing: 1.6,
+          fontFamily: fonts.kicker,
+          fontSize: typeScale.kicker.fontSize,
+          lineHeight: typeScale.kicker.lineHeight,
+          letterSpacing: typeScale.kicker.letterSpacing,
           textTransform: "uppercase",
           color: inverted ? colors.primaryForeground : colors.mutedForeground,
         },
@@ -58,15 +75,15 @@ export function Body({
   style,
   ...props
 }: TextProps & { size?: BodySize; inverted?: boolean }) {
-  const lineHeight = size === "sm" ? 18 : size === "lg" ? 26 : 22;
+  const scale = bodyMap[size];
   return (
     <Text
       {...props}
       style={[
         {
           fontFamily: fonts.sans,
-          fontSize: bodySizes[size],
-          lineHeight,
+          fontSize: scale.fontSize,
+          lineHeight: scale.lineHeight,
           color: inverted ? colors.primaryForeground : colors.mutedForeground,
         },
         style as TextStyle,
@@ -82,7 +99,8 @@ export function Label({ style, ...props }: TextProps) {
       style={[
         {
           fontFamily: fonts.sansSemi,
-          fontSize: 14,
+          fontSize: typeScale.label.fontSize,
+          lineHeight: typeScale.label.lineHeight,
           color: colors.foreground,
         },
         style as TextStyle,
@@ -97,6 +115,7 @@ export function StatValue({
   style,
   ...props
 }: TextProps & { size?: StatSize; inverted?: boolean }) {
+  const scale = statMap[size];
   return (
     <Text
       {...props}
@@ -104,9 +123,10 @@ export function StatValue({
         {
           fontFamily: fonts.display,
           fontStyle: "italic",
-          fontSize: statSizes[size],
+          fontSize: scale.fontSize,
+          lineHeight: scale.lineHeight,
+          letterSpacing: scale.letterSpacing,
           color: inverted ? colors.primaryForeground : colors.foreground,
-          letterSpacing: -0.5,
         },
         style as TextStyle,
       ]}

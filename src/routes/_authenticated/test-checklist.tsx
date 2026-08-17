@@ -55,13 +55,19 @@ function TestChecklistPage() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setDone(JSON.parse(raw));
-    } catch {}
+    } catch {
+      /* ignore corrupt localStorage */
+    }
   }, []);
 
   const toggle = useCallback((id: string) => {
     setDone((d) => {
       const next = { ...d, [id]: !d[id] };
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore quota / private mode */
+      }
       return next;
     });
   }, []);
@@ -73,11 +79,16 @@ function TestChecklistPage() {
       setLog((l) => [{ id, msg, ts: Date.now(), ok: true }, ...l].slice(0, 20));
       setDone((d) => {
         const next = { ...d, [id]: true };
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          /* ignore quota / private mode */
+        }
         return next;
       });
-    } catch (e: any) {
-      setLog((l) => [{ id, msg: e?.message ?? "Failed", ts: Date.now(), ok: false }, ...l].slice(0, 20));
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed";
+      setLog((l) => [{ id, msg, ts: Date.now(), ok: false }, ...l].slice(0, 20));
     } finally {
       setBusy(null);
     }
@@ -106,7 +117,7 @@ function TestChecklistPage() {
       action: {
         label: "Count pending via API",
         run: async () => {
-          const rows = (await listAll({ data: { status: "pending" } })) as any[];
+          const rows = await listAll({ data: { status: "pending" } });
           return `${rows.length} pending testimonials in queue.`;
         },
       },
@@ -145,7 +156,7 @@ function TestChecklistPage() {
       action: {
         label: "Run anon check",
         run: async () => {
-          const rows = (await publicCheck()) as any[];
+          const rows = await publicCheck();
           const bad = rows.filter(
             (r) => r.status !== "approved" || r.permission_to_publish !== true,
           );

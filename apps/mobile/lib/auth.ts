@@ -14,6 +14,19 @@ const OAUTH_RESET_URL = "feelgood://auth/reset";
 
 let lastOAuthRedirectTo = "";
 let lastOAuthRedirectParam: string | null = null;
+let passwordRecoveryPending = false;
+
+export function isPasswordRecoveryPending() {
+  return passwordRecoveryPending;
+}
+
+export function markPasswordRecoveryPending() {
+  passwordRecoveryPending = true;
+}
+
+export function clearPasswordRecoveryPending() {
+  passwordRecoveryPending = false;
+}
 
 export function getOAuthRedirectTo() {
   return lastOAuthRedirectTo || OAUTH_CALLBACK_URL;
@@ -89,12 +102,29 @@ export async function completeSessionFromUrl(url: string) {
   if (error) throw error;
 }
 
+export class EmailNotConfirmedError extends Error {
+  readonly code = "email_not_confirmed" as const;
+  constructor() {
+    super("Confirm your email first. Check your inbox for the one-time code.");
+    this.name = "EmailNotConfirmedError";
+  }
+}
+
+export function isEmailNotConfirmedError(e: unknown): e is EmailNotConfirmedError {
+  return (
+    e instanceof EmailNotConfirmedError ||
+    (e instanceof Error &&
+      (e.message.toLowerCase().includes("email not confirmed") ||
+        e.message.toLowerCase().includes("not confirmed")))
+  );
+}
+
 export async function signInWithEmail(email: string, password: string) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
     const msg = error.message.toLowerCase();
     if (msg.includes("email not confirmed") || msg.includes("not confirmed")) {
-      throw new Error("Confirm your email first, then Sign in. Check your inbox for the confirmation link.");
+      throw new EmailNotConfirmedError();
     }
     throw error;
   }
@@ -107,11 +137,7 @@ export async function signUpWithEmail(email: string, password: string, displayNa
     options: { data: { display_name: displayName } },
   });
   if (error) throw error;
-
-  const confirmedAt = data.user?.email_confirmed_at ?? data.user?.confirmed_at;
-  if (data.session && !confirmedAt) {
-    await supabase.auth.signOut();
-  }
+  return { hasSession: Boolean(data.session) };
 }
 
 export async function requestPasswordReset(email: string) {
@@ -122,21 +148,31 @@ export async function requestPasswordReset(email: string) {
 }
 
 export async function verifyRecoveryOtp(email: string, token: string) {
-  const { error } = await supabase.auth.verifyOtp({
-    email,
+  const { data, error } = await supabase.auth.verifyOtp({
+    email: email.trim(),
     token: token.trim(),
     type: "recovery",
   });
   if (error) throw error;
+  if (!data.session) {
+    throw new Error("Code verified but no session was created. Request a new code and try again.");
+  }
+  markPasswordRecoveryPending();
+  return data.session;
 }
 
 export async function verifySignupOtp(email: string, token: string) {
-  const { error } = await supabase.auth.verifyOtp({
-    email,
+  const { data, error } = await supabase.auth.verifyOtp({
+    email: email.trim(),
     token: token.trim(),
     type: "signup",
   });
   if (error) throw error;
+  if (!data.session) {
+    throw new Error("Code verified but no session was created. Request a new code and try again.");
+  }
+  clearPasswordRecoveryPending();
+  return data.session;
 }
 
 export async function resendSignupConfirmation(email: string) {
@@ -148,8 +184,13 @@ export async function resendSignupConfirmation(email: string) {
 }
 
 export async function updatePassword(newPassword: string) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session) {
+    throw new Error("Your reset session expired. Enter a new one-time code, then set your password.");
+  }
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw error;
+  clearPasswordRecoveryPending();
 }
 
 async function openAuthSessionWithLinkingFallback(authUrl: string, redirectTo: string) {
@@ -234,7 +275,7 @@ export async function signInWithGoogle() {
   await completeSessionFromUrl(callbackUrl);
 }
 
-export const APPLE_SIGN_IN_ENABLED = false;
+export const APPLE_SIGN_IN_ENABLED = true;
 
 export async function signInWithApple() {
   if (!APPLE_SIGN_IN_ENABLED) {
@@ -260,6 +301,7 @@ export async function signInWithApple() {
 }
 
 export async function signOut() {
+  clearPasswordRecoveryPending();
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }

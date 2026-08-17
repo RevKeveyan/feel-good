@@ -1,4 +1,4 @@
-﻿# EAS: сборка и отправка в сторы
+# EAS: сборка и отправка в сторы
 
 > Полная инструкция на русском: [`PUBLISH_RU.md`](PUBLISH_RU.md)
 
@@ -42,6 +42,8 @@ eas secret:create --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value "<publisha
 # опционально:
 eas secret:create --name EXPO_PUBLIC_MINDSET_AUDIO_BASE_URL --value "https://cdn.example.com/mindset"
 ```
+
+Файлы на CDN: `day-01.mp3` … `day-21.mp3`. Трек открывается, когда файл есть по этому URL (не по дню челленджа).
 
 Локальный `.env` для Expo Go **не** подставляется автоматически в store-сборку — нужны именно EAS secrets.
 

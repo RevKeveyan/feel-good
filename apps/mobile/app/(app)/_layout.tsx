@@ -1,19 +1,33 @@
 import { Redirect, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
+import { isPasswordRecoveryPending } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { colors } from "@/src/theme";
 
 export default function AppLayout() {
   const [ready, setReady] = useState(false);
   const [authed, setAuthed] = useState(false);
+  const [recovery, setRecovery] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setAuthed(!!data.session);
-      setReady(true);
+    void supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        setAuthed(!!data.session);
+        setRecovery(isPasswordRecoveryPending());
+      })
+      .catch((e) => {
+        console.warn("[auth] getSession failed", e instanceof Error ? e.message : e);
+        setAuthed(false);
+      })
+      .finally(() => {
+        setReady(true);
+      });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setAuthed(!!session);
+      setRecovery(isPasswordRecoveryPending());
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => setAuthed(!!session));
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -26,14 +40,18 @@ export default function AppLayout() {
   }
 
   if (!authed) return <Redirect href="/auth" />;
+  if (recovery) return <Redirect href="/auth/reset" />;
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+      <Stack.Screen name="overview" />
       <Stack.Screen name="today" />
+      <Stack.Screen name="day/[day]" />
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="mindset" />
       <Stack.Screen name="complete" />
       <Stack.Screen name="settings" />
+      <Stack.Screen name="progress" />
     </Stack>
   );
 }

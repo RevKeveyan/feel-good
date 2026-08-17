@@ -1,4 +1,4 @@
-﻿# Mobile Auth Setup (Supabase + Expo)
+# Mobile Auth Setup (Supabase + Expo)
 
 See also: [BACKEND_DEPLOY.md](./BACKEND_DEPLOY.md), [NEW_SUPABASE_SETUP.md](./NEW_SUPABASE_SETUP.md).
 
@@ -74,12 +74,23 @@ Forgot → email one-time code → `/auth/reset` → new password.
 3. Supabase → Auth → Providers → Google → enable + Client ID/Secret
 4. Mobile: `signInWithOAuth` + `WebBrowser.openAuthSessionAsync` → `setSession`
 
-### Apple (required on iOS if Google is offered)
+### Apple (required on iOS for App Store — email + Apple)
 
 1. Apple Developer -> App ID `com.feelgoodsociety.challenge` -> Sign In with Apple
 2. Create Services ID + Key (.p8)
 3. Supabase -> Auth -> Providers -> Apple
-4. Mobile: `expo-apple-authentication` -> `signInWithIdToken`
+4. Mobile: `expo-apple-authentication` -> `signInWithIdToken` (iOS only UI)
+
+**Client IDs** (comma-separated in Supabase Apple provider):
+
+```
+com.feelgoodsociety.challenge,host.exp.Exponent
+```
+
+- `com.feelgoodsociety.challenge` — EAS / TestFlight / App Store
+- `host.exp.Exponent` — **required for Expo Go** (otherwise: `Unacceptable audience in id_token: [host.exp.Exponent]`)
+
+Final QA of Apple Sign In: prefer a preview/production iOS build (real bundle ID). Expo Go is only for quick smoke after adding `host.exp.Exponent`.
 
 ## Env
 
@@ -88,6 +99,8 @@ EXPO_PUBLIC_SUPABASE_URL=https://bruvmdcstlkszvjruska.supabase.co
 EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
 EXPO_PUBLIC_MINDSET_AUDIO_BASE_URL=
 ```
+
+Mindset tracks play when this base URL is set and files exist at `{base}/day-01.mp3` … `day-21.mp3`. Unlock is CDN presence, not challenge day. Web uses `VITE_MINDSET_AUDIO_BASE_URL` the same way. Without files, tracks stay locked.
 
 ## Deep link scheme
 

@@ -1,5 +1,6 @@
 export { PromptField } from "./PromptField";
 export { GradientArea } from "./GradientArea";
+export { DiagonalGradient } from "./DiagonalGradient";
 export { RadarChart } from "./RadarChart";
 export { WheelScale } from "./WheelScale";
 export { VisionAddTile } from "./VisionAddTile";

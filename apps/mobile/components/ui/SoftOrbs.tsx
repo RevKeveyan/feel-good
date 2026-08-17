@@ -1,57 +1,50 @@
+import { memo } from "react";
 import { StyleSheet, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { colors } from "@/src/theme";
+import { backgroundGlow, boostedOpacity, colors } from "@/src/theme";
+import { SoftOrb } from "./SoftOrb";
 
-export function SoftOrbs() {
+type Orb = {
+  key: string;
+  size: number;
+  color: string;
+  opacity: number;
+  top?: number;
+  left?: number;
+  right?: number;
+  bottom?: number;
+};
+
+const ORB_BLUR = 40;
+
+/** Positions and sizes match the original circles; opacities are the same alphas, boosted. */
+const ORBS: Orb[] = [
+  { key: "lime", size: 280, color: colors.lime, opacity: 0.2, top: -100, right: -90 },
+  { key: "accent", size: 240, color: colors.accent, opacity: 0.251, bottom: 20, left: -110 },
+  { key: "blush", size: 160, color: colors.destructive, opacity: 0.2, top: 300, left: -50 },
+  { key: "secondary", size: 140, color: colors.secondary, opacity: 0.349, bottom: 100, right: 10 },
+];
+
+export const SoftOrbs = memo(function SoftOrbs() {
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <LinearGradient
-        colors={[colors.lime + "33", colors.lime + "00"]}
-        style={[styles.orb, styles.topRight]}
-      />
-      <LinearGradient
-        colors={[colors.accent + "40", colors.accent + "00"]}
-        style={[styles.orb, styles.bottomLeft]}
-      />
-      <LinearGradient
-        colors={[colors.destructive + "33", colors.destructive + "00"]}
-        style={[styles.orb, styles.midLeft]}
-      />
-      <LinearGradient
-        colors={[colors.secondary + "59", colors.secondary + "00"]}
-        style={[styles.orb, styles.bottomRight]}
-      />
+    <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.base]}>
+      {ORBS.map((orb) => (
+        <SoftOrb
+          key={orb.key}
+          size={orb.size}
+          blur={ORB_BLUR}
+          color={orb.color}
+          opacity={boostedOpacity(orb.opacity)}
+          falloff={backgroundGlow.falloff.background}
+          top={orb.top}
+          left={orb.left}
+          right={orb.right}
+          bottom={orb.bottom}
+        />
+      ))}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
-  orb: {
-    position: "absolute",
-    borderRadius: 999,
-  },
-  topRight: {
-    width: 280,
-    height: 280,
-    top: -100,
-    right: -90,
-  },
-  bottomLeft: {
-    width: 240,
-    height: 240,
-    bottom: 20,
-    left: -110,
-  },
-  midLeft: {
-    width: 160,
-    height: 160,
-    top: 300,
-    left: -50,
-  },
-  bottomRight: {
-    width: 140,
-    height: 140,
-    bottom: 100,
-    right: 10,
-  },
+  base: { overflow: "hidden" },
 });

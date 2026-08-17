@@ -20,13 +20,18 @@ Use after each screen ships. Mark: `[ ]` todo `[x]` done `[~]` partial (code rea
 
 ### Typography parity (brand kit + web) — 2026-07-21
 - [x] Shared primitives: `DisplayTitle`, `Kicker`, `Body`, `Label`, `StatValue` — see [`TYPOGRAPHY.md`](TYPOGRAPHY.md)
+- [x] `typeScale` aligned to web Tailwind map (`text-3xl` = 30, `text-sm` = 14, etc.)
+- [x] Auth + reset typography 1:1: title 30 League italic; kickers mono 10; inputs/buttons 14; switch/forgot 12
 - [x] League Spartan display italic on headings (Today, Onboarding, Complete, Auth title)
-- [x] Open Sans body via `Body` / `Label`; Raleway kickers via `Kicker`
+- [x] Open Sans body via `Body` / `Label`; mono kickers via `Kicker` (match current web `font-mono`)
 - [x] Playfair `BrandWordmark` kept on Auth
 - [x] ScoreRing, HabitToggle, Settings, StruggleSheet use typography primitives
 - [x] Stats and counters use `StatValue` to avoid clipped synthetic-italic digits on mobile
-- [x] Today quote card: `text-lg` parity (~18px) + lineHeight ≥ fontSize (no Android glyph tears); content above GradientCard orb
+- [x] Today quote card: lime→card→destructive gradient + accent orb; `text-lg` (18px); content above orb
+- [x] Missed banner `#F1E8D7` (web accent/10 wash); Heart 20; body `text-xs`
+- [x] Move modal layout 1:1 web (pills → duration → Save)
 - [~] Device visual pass vs web Today header / quote / ScoreRing / check-in contrast — re-verify on emulator
+- [ ] Later passes: Onboarding → Today → Mindset → Complete → Settings (size roles per [`TYPOGRAPHY.md`](TYPOGRAPHY.md))
 
 ### Legal pages (in-app) — 2026-07-24
 - [x] Shared content: `@feelgood/shared` `privacyPolicy` / `termsOfService` (`legal-content.ts`)
@@ -44,7 +49,7 @@ Use after each screen ships. Mark: `[ ]` todo `[x]` done `[~]` partial (code rea
 
 ### Auth
 - [x] Email sign up / sign in — **API PASS**
-- [x] Forgot password + reset screen (`/auth/reset`) — code; needs Redirect URLs + branded email paste
+- [x] Forgot password + reset screen (`/auth/reset`) — OTP verify → set password; recovery pending gate blocks Today until password set; Back to Sign in signs out
 - [~] Branded Confirm / Reset emails — HTML in [`email-templates/`](email-templates/); paste in Dashboard
 - [!] Google Sign In (native) — code ready; needs Dashboard OAuth
 - [!] Apple Sign In (iOS) — code ready; needs Apple + Supabase config
@@ -63,7 +68,8 @@ Use after each screen ships. Mark: `[ ]` todo `[x]` done `[~]` partial (code rea
 - [x] Day number / week / streak / score — **UI PASS**
 - [x] Nourish, Fuel, Move, Mindset, Hydrate — **UI+API PASS** (Move minutes: code; device re-check)
 - [~] Check-in gate (4 scales) — Required label + dark-card contrast fixed; device tap confirm
-- [~] Missed yesterday banner — Heart icon + copy layout fixed; needs SQL backdate
+- [~] Missed yesterday banner — Heart icon + copy; bg `#F1E8D7` + accent ring (web `accent/10`); device SQL backdate for QA
+- [x] Log movement modal 1:1 web: 3×3 type pills, Duration kicker, minutes input, Save CTA, ✕ close
 - [~] Weekly photo upload/replace + old object cleanup — code; device confirm
 - [x] Struggle log to DB — **API PASS**
 

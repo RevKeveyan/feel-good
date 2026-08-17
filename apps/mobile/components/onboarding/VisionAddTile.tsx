@@ -1,54 +1,77 @@
 import { Pressable, StyleSheet, Text } from "react-native";
 import { ImagePlus } from "@/components/ui/icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { colors, fonts, gradients, radius } from "@/src/theme";
+import {
+  borders,
+  colors,
+  fonts,
+  gradients,
+  iconSizes,
+  opacity,
+  radius,
+  space,
+  typeScale,
+  withAlpha,
+} from "@/src/theme";
+import { DiagonalGradient } from "./DiagonalGradient";
 
 type Props = {
   onPress: () => void;
   uploading?: boolean;
   disabled?: boolean;
+  tileWidth: number;
 };
 
-export function VisionAddTile({ onPress, uploading, disabled }: Props) {
+export function VisionAddTile({ onPress, uploading, disabled, tileWidth }: Props) {
   return (
     <Pressable
-      style={[styles.cell, disabled && styles.disabled]}
+      style={[
+        styles.cell,
+        { width: tileWidth, height: tileWidth },
+        disabled && styles.disabled,
+      ]}
       onPress={onPress}
       disabled={disabled || uploading}
     >
-      <LinearGradient
-        colors={[...gradients.visionAdd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.inner}
+      <DiagonalGradient
+        colorsStops={gradients.visionAdd}
+        style={styles.fill}
+        contentStyle={styles.inner}
       >
-        <ImagePlus size={32} color={colors.foreground + "B3"} strokeWidth={2} />
+        <ImagePlus
+          size={iconSizes.xl}
+          color={withAlpha(colors.foreground, 0.7)}
+          strokeWidth={2}
+        />
         <Text style={styles.label}>{uploading ? "Uploading…" : "Add image"}</Text>
-      </LinearGradient>
+      </DiagonalGradient>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   cell: {
-    width: "48%",
-    aspectRatio: 1,
+    alignSelf: "flex-start",
     borderRadius: radius["2xl"],
-    borderWidth: 2,
+    borderWidth: borders.thick,
     borderStyle: "dashed",
-    borderColor: colors.destructive + "80",
+    borderColor: withAlpha(colors.destructive, 0.5),
     overflow: "hidden",
   },
-  disabled: { opacity: 0.5 },
+  disabled: { opacity: opacity.disabledSoft },
+  fill: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+  },
   inner: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: space.sm,
   },
   label: {
     fontFamily: fonts.sans,
-    fontSize: 12,
+    fontSize: typeScale.bodySm.fontSize,
     color: colors.mutedForeground,
   },
 });

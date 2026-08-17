@@ -1,6 +1,10 @@
 import * as FileSystem from "expo-file-system/legacy";
+import * as ImageManipulator from "expo-image-manipulator";
 import { decode } from "base64-arraybuffer";
 import { supabase } from "./supabase";
+
+const MAX_UPLOAD_BYTES = 4.5 * 1024 * 1024;
+const JPEG_CONTENT_TYPE = "image/jpeg";
 
 type UploadImageOptions = {
   bucket: string;
@@ -84,19 +88,55 @@ async function resolveReadableUri(uri: string, contentType: string): Promise<str
   return dest;
 }
 
+async function optimizeForUpload(uri: string): Promise<string> {
+  const attempts: { width: number; compress: number }[] = [
+    { width: 1600, compress: 0.7 },
+    { width: 1280, compress: 0.5 },
+    { width: 1024, compress: 0.4 },
+  ];
+
+  let lastUri = uri;
+  for (const attempt of attempts) {
+    try {
+      const result = await ImageManipulator.manipulateAsync(
+        lastUri,
+        [{ resize: { width: attempt.width } }],
+        {
+          compress: attempt.compress,
+          format: ImageManipulator.SaveFormat.JPEG,
+        },
+      );
+      lastUri = result.uri;
+      const probe = await FileSystem.readAsStringAsync(lastUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const approxBytes = Math.floor((probe.length * 3) / 4);
+      if (approxBytes <= MAX_UPLOAD_BYTES) {
+        return lastUri;
+      }
+    } catch (e) {
+      throw new Error(
+        `Could not optimize image: ${formatUploadError(e, "compress failed")}`,
+      );
+    }
+  }
+
+  return lastUri;
+}
+
 export async function uploadLocalImage({
   bucket,
   path,
   uri,
-  contentType,
+  contentType: _contentType,
   upsert = false,
 }: UploadImageOptions) {
-  const resolvedType = contentType ?? guessImageContentType(uri);
-  const readableUri = await resolveReadableUri(uri, resolvedType);
+  const readableUri = await resolveReadableUri(uri, guessImageContentType(uri));
+  const optimizedUri = await optimizeForUpload(readableUri);
 
   let base64: string;
   try {
-    base64 = await FileSystem.readAsStringAsync(readableUri, {
+    base64 = await FileSystem.readAsStringAsync(optimizedUri, {
       encoding: FileSystem.EncodingType.Base64,
     });
   } catch (e) {
@@ -107,9 +147,21 @@ export async function uploadLocalImage({
     throw new Error("Image file is empty");
   }
 
-  const body = decode(base64);
+  let body: ArrayBuffer;
+  try {
+    body = decode(base64);
+  } catch (e) {
+    throw new Error(
+      `Could not encode image for upload: ${formatUploadError(e, "out of range")}`,
+    );
+  }
+
+  if (body.byteLength > MAX_UPLOAD_BYTES) {
+    throw new Error("Image is too large to upload. Try a smaller photo.");
+  }
+
   const { data, error } = await supabase.storage.from(bucket).upload(path, body, {
-    contentType: resolvedType,
+    contentType: JPEG_CONTENT_TYPE,
     upsert,
   });
   if (error) {

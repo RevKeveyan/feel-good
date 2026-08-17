@@ -46,6 +46,45 @@ export function daysRemaining(startDateISO: string): number {
   return Math.max(0, CHALLENGE_LENGTH - currentDay(startDateISO));
 }
 
+export type DayAvailability =
+  | "future"
+  | "today"
+  | "past_complete"
+  | "past_incomplete"
+  | "past_empty";
+
+export function entryDateForChallengeDay(startDateISO: string, day: number): string {
+  const start = new Date(startDateISO + "T00:00:00");
+  start.setDate(start.getDate() + (day - 1));
+  return toISO(start);
+}
+
+export function challengeDayForEntryDate(
+  startDateISO: string,
+  entryDateISO: string,
+): number | null {
+  const start = new Date(startDateISO + "T00:00:00");
+  const entry = new Date(entryDateISO + "T00:00:00");
+  const diff = Math.floor((entry.getTime() - start.getTime()) / 86400000) + 1;
+  if (diff < 1 || diff > CHALLENGE_LENGTH) return null;
+  return diff;
+}
+
+export function dayAvailability(
+  day: number,
+  current: number,
+  entries: Partial<DailyEntry>[],
+  startDateISO: string,
+): DayAvailability {
+  if (day > current) return "future";
+  if (day === current) return "today";
+  const iso = entryDateForChallengeDay(startDateISO, day);
+  const entry = entries.find((e) => e.entry_date === iso) ?? null;
+  if (!entry) return "past_empty";
+  if (isDayComplete(entry)) return "past_complete";
+  return "past_incomplete";
+}
+
 export function dailyScore(entry: Partial<DailyEntry> | null, waterTargetMl: number): number {
   if (!entry) return 0;
   const habits = [entry.nourish, entry.fuel, entry.move_done, entry.mindset].filter(Boolean).length;

@@ -44,7 +44,7 @@ Lifestyle (secondary)
 Initial release: daily Feel Good Five tracker, onboarding, mindset library, Day 55 reveal, and account deletion.
 
 ## Review notes (Apple)
-- Sign in with Email/password for review, or use Sign in with Apple.
+- Sign in with Email/password, or Sign in with Apple (iOS).
 - Demo path: complete onboarding → toggle habits + check-in on Today.
 - To preview Day 55 reveal, ask support to set challenge_start_date 54 days back, or use provided review account.
 - Positioning: habit / wellness tracker — not medical diagnosis or treatment.

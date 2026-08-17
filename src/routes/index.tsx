@@ -329,7 +329,7 @@ function BeforeAfter() {
 
             {/* Word pairs */}
             <div className="space-y-4 md:space-y-5">
-              {pairs.map((pair, i) => (
+              {pairs.map((pair) => (
                 <div
                   key={pair.before}
                   className="group grid grid-cols-[1fr_auto_1fr] items-center gap-3 md:gap-6"
@@ -368,61 +368,7 @@ function BeforeAfter() {
 }
 
 
-function Column({
-  label,
-  items,
-  tone,
-}: {
-  label: string;
-  items: string[];
-  tone: "muted" | "accent";
-}) {
-  const isAccent = tone === "accent";
-  return (
-    <div
-      className={`rounded-3xl p-8 ring-1 ${
-        isAccent
-          ? "bg-[color:var(--secondary)] text-foreground ring-black/5"
-          : "bg-card ring-black/5"
-      }`}
-    >
-      <p
-        className={`font-mono text-[10px] uppercase tracking-[0.3em] ${
-          isAccent ? "text-foreground/60" : "text-muted-foreground"
-        }`}
-      >
-        {label}
-      </p>
-      <ul className="mt-6 space-y-3">
-        {items.map((it) => (
-          <li key={it} className="flex items-center gap-3 text-base">
-            <span
-              className={`size-1.5 rounded-full ${
-                isAccent ? "bg-accent" : "bg-muted-foreground/40"
-              }`}
-            />
-            {it}
-          </li>
-        ))}
-      </ul>
 
-    </div>
-  );
-}
-
-function ArrowRight() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M5 12h14M13 6l6 6-6 6"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 function HowItWorks() {
   const steps = [

@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { colors, radius } from "@/src/theme";
+import { borders, colors, radius, space } from "@/src/theme";
 
 type CardProps = {
   children: ReactNode;
@@ -14,10 +14,12 @@ export function BrandCard({ children, style }: CardProps) {
 
 type GradientProps = CardProps & {
   colorsStops: readonly [string, string, ...string[]];
-  orb?: boolean;
+  /** Decorative glow painted under the content, typically a `SoftOrb`. */
+  orb?: ReactNode;
+  contentStyle?: StyleProp<ViewStyle>;
 };
 
-export function GradientCard({ children, colorsStops, orb, style }: GradientProps) {
+export function GradientCard({ children, colorsStops, orb, style, contentStyle }: GradientProps) {
   return (
     <LinearGradient
       colors={[...colorsStops]}
@@ -25,13 +27,8 @@ export function GradientCard({ children, colorsStops, orb, style }: GradientProp
       end={{ x: 1, y: 1 }}
       style={[styles.card, styles.overflow, style]}
     >
-      {orb ? (
-        <LinearGradient
-          colors={[colors.accent + "66", colors.accent + "00"]}
-          style={styles.orb}
-        />
-      ) : null}
-      {children}
+      {orb}
+      <View style={[styles.content, contentStyle]}>{children}</View>
     </LinearGradient>
   );
 }
@@ -40,17 +37,13 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.card,
     borderRadius: radius["3xl"],
-    padding: 20,
-    borderWidth: 1,
+    padding: space.p5,
+    borderWidth: borders.hairline,
     borderColor: colors.ringHairline,
   },
   overflow: { overflow: "hidden", position: "relative" },
-  orb: {
-    position: "absolute",
-    right: -50,
-    top: -50,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
+  content: {
+    position: "relative",
+    zIndex: 1,
   },
 });

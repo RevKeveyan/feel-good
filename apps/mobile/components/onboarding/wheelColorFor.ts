@@ -1,6 +1,7 @@
+import { colors } from "@/src/theme";
+
 export function wheelColorFor(n: number): string {
-  if (n <= 3) return "#DD9B9B";
-  if (n <= 6) return "#F2BDC2";
-  if (n <= 8) return "#E1C340";
-  return "#CCDA18";
+  if (n <= 6) return colors.secondary;
+  if (n <= 8) return colors.accent;
+  return colors.lime;
 }

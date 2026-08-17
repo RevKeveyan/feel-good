@@ -1,38 +1,45 @@
 import { type ReactNode } from "react";
-import { StyleSheet, View, type ViewStyle } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { colors, radius } from "@/src/theme";
+import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
+import { borders, colors, radius } from "@/src/theme";
+import { DiagonalGradient } from "./DiagonalGradient";
 
 type Props = {
   colorsStops: readonly [string, string, ...string[]];
   children: ReactNode;
-  style?: ViewStyle;
-  padded?: boolean;
+  style?: StyleProp<ViewStyle>;
+  contentStyle?: StyleProp<ViewStyle>;
+  hairline?: boolean;
+  backdrop?: ReactNode;
 };
 
-export function GradientArea({ colorsStops, children, style, padded = true }: Props) {
+/** Web `rounded-3xl ring-1 ring-black/5 bg-gradient-to-br` panel. */
+export function GradientArea({
+  colorsStops,
+  children,
+  style,
+  contentStyle,
+  hairline = true,
+  backdrop,
+}: Props) {
   return (
-    <View style={[styles.wrap, style]}>
-      <LinearGradient
-        colors={[...colorsStops]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.inner, padded && styles.padded]}
-      >
-        {children}
-      </LinearGradient>
-    </View>
+    <DiagonalGradient
+      colorsStops={colorsStops}
+      style={[styles.wrap, hairline && styles.hairline, style]}
+      contentStyle={contentStyle}
+      backdrop={backdrop}
+    >
+      {children}
+    </DiagonalGradient>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
     borderRadius: radius["3xl"],
-    borderWidth: 1,
-    borderColor: colors.ringHairline,
     overflow: "hidden",
-    marginBottom: 12,
   },
-  inner: { width: "100%" },
-  padded: { padding: 16 },
+  hairline: {
+    borderWidth: borders.hairline,
+    borderColor: colors.ringHairline,
+  },
 });

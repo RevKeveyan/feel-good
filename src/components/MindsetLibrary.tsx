@@ -3,9 +3,12 @@ import { Headphones, Pause, Play, Lock } from "lucide-react";
 import {
   MINDSET_CATEGORIES,
   MINDSET_TRACKS,
+  getMindsetAudioUrl,
   type MindsetTrack,
   type MindsetCategory,
 } from "@/lib/mindset-tracks";
+
+const audioBase = (import.meta.env.VITE_MINDSET_AUDIO_BASE_URL as string | undefined) ?? null;
 
 export function MindsetLibrary({ compact = false }: { compact?: boolean }) {
   const [activeCategory, setActiveCategory] = useState<MindsetCategory | "All">(
@@ -14,10 +17,19 @@ export function MindsetLibrary({ compact = false }: { compact?: boolean }) {
   const [playingId, setPlayingId] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const tracksWithAudio = useMemo(
+    () =>
+      MINDSET_TRACKS.map((t) => ({
+        ...t,
+        audioUrl: getMindsetAudioUrl(t.day, audioBase),
+      })),
+    [],
+  );
+
   const filtered = useMemo(() => {
-    if (activeCategory === "All") return MINDSET_TRACKS;
-    return MINDSET_TRACKS.filter((t) => t.category === activeCategory);
-  }, [activeCategory]);
+    if (activeCategory === "All") return tracksWithAudio;
+    return tracksWithAudio.filter((t) => t.category === activeCategory);
+  }, [activeCategory, tracksWithAudio]);
 
   const togglePlay = (track: MindsetTrack) => {
     if (!track.audioUrl) return;
@@ -168,7 +180,8 @@ export function MindsetLibrary({ compact = false }: { compact?: boolean }) {
       </section>
 
       <p className="mt-6 px-6 text-center text-[11px] text-muted-foreground">
-        Audio for each day will unlock as it is added.
+        A track unlocks when its audio file is on the CDN (day-XX.mp3). It is not locked to the
+        challenge calendar day.
       </p>
     </div>
   );

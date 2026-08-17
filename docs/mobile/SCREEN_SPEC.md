@@ -12,7 +12,7 @@ Typography mapping: [`TYPOGRAPHY.md`](TYPOGRAPHY.md).
 
 **API:** `supabase.auth.signUp`, `signInWithPassword`, OAuth Google/Apple (mobile native).
 
-**Post-auth:** redirect to `/today`; if `onboarding_completed_at` null → `/onboarding`.
+**Post-auth:** web → `/today`; mobile → overview (`/(app)/overview`). If `onboarding_completed_at` null → `/onboarding`.
 
 ---
 
@@ -43,9 +43,15 @@ Steps: welcome → why → goals → commitment → wheel → why-statement → 
 
 ---
 
+## Overview (mobile only)
+
+Grid of all 55 challenge days in the app (`/(app)/overview`). Past days open read-only (`/(app)/day/[n]`). Today opens `/(app)/today`. Future days stay locked. Not a web route — web stays on `/today`.
+
+---
+
 ## Mindset (`/mindset`)
 
-Static catalog `MINDSET_TRACKS` (21 days). Audio from `VITE_MINDSET_AUDIO_BASE_URL/day-XX.mp3`.
+Static catalog `MINDSET_TRACKS` (21 days). Audio from `VITE_MINDSET_AUDIO_BASE_URL/day-XX.mp3` (web) or `EXPO_PUBLIC_MINDSET_AUDIO_BASE_URL/day-XX.mp3` (mobile). A track is playable when that URL is set; it is not gated by challenge calendar day.
 
 ---
 

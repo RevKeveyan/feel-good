@@ -10,7 +10,6 @@
     },
     "preview": {
       "distribution": "internal",
-      "credentialsSource": "local",
       "env": {
         "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
       },
@@ -28,9 +27,9 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "REPLACE_APPLE_ID",
-        "ascAppId": "REPLACE_ASC_APP_ID",
-        "appleTeamId": "REPLACE_TEAM_ID"
+        "appleId": "management@networkco.net",
+        "ascAppId": "6800691043",
+        "appleTeamId": "69NTK354Z8"
       },
       "android": {
         "serviceAccountKeyPath": "./google-play-service-account.json",

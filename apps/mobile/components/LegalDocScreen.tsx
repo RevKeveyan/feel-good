@@ -2,7 +2,7 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import type { LegalDocument } from "@feelgood/shared";
 import { Body, DisplayTitle, Kicker, Label, Screen } from "@/components/ui";
-import { colors, space } from "@/src/theme";
+import { colors, space, typeScale } from "@/src/theme";
 
 export function LegalDocScreen({ doc }: { doc: LegalDocument }) {
   return (
@@ -47,21 +47,21 @@ export function LegalDocScreen({ doc }: { doc: LegalDocument }) {
 
 const styles = StyleSheet.create({
   container: { paddingTop: space.lg, paddingBottom: 48 },
-  title: { marginTop: space.md, marginBottom: 4 },
-  updated: { marginBottom: space.lg },
-  section: { marginBottom: space.md },
+  title: { marginTop: space.md, marginBottom: space.xs },
+  updated: { marginBottom: space.p6 },
+  section: { marginBottom: space.lg },
   heading: {
-    fontSize: 15,
-    marginBottom: 8,
-    marginTop: 8,
+    fontSize: typeScale.bodyBase.fontSize,
+    marginBottom: space.sm,
+    marginTop: space.sm,
     color: colors.foreground,
   },
   paragraph: {
-    marginBottom: 10,
+    marginBottom: space.md,
     color: colors.foreground,
-    lineHeight: 22,
+    lineHeight: 23,
   },
-  bulletRow: { flexDirection: "row", gap: 8, marginBottom: 6, paddingRight: 8 },
-  bulletMark: { color: colors.foreground, lineHeight: 22 },
-  bulletText: { flex: 1, color: colors.foreground, lineHeight: 22 },
+  bulletRow: { flexDirection: "row", gap: space.sm, marginBottom: 6, paddingRight: space.sm },
+  bulletMark: { color: colors.foreground, lineHeight: 23 },
+  bulletText: { flex: 1, color: colors.foreground, lineHeight: 23 },
 });

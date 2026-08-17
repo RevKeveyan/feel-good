@@ -1,22 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   Share,
   StyleSheet,
   TextInput,
   View,
+  type TextInput as TextInputType,
 } from "react-native";
 import { Redirect, router } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import {
+  APPLE_SIGN_IN_ENABLED,
   GOOGLE_SIGN_IN_ENABLED,
   getLastOAuthRedirectParam,
   getOAuthRedirectTo,
+  isEmailNotConfirmedError,
+  isPasswordRecoveryPending,
+  markPasswordRecoveryPending,
   requestPasswordReset,
   resendSignupConfirmation,
+  signInWithApple,
   signInWithEmail,
   signInWithGoogle,
   signUpWithEmail,
@@ -33,7 +39,8 @@ import {
   PrimaryButton,
   SoftOrbs,
 } from "@/components/ui";
-import { colors, fonts, radius, space } from "@/src/theme";
+import { KeyboardAccessoryBar, KeyboardScreen } from "@/components/KeyboardScreen";
+import { borders, colors, fonts, radius, space, typeScale } from "@/src/theme";
 
 type AuthMode = "signin" | "signup" | "forgot" | "confirm";
 
@@ -46,16 +53,33 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [session, setSession] = useState<boolean | null>(null);
   const [passwordRecovery, setPasswordRecovery] = useState(false);
+  const passwordRef = useRef<TextInputType>(null);
+  const confirmCodeRef = useRef<TextInputType>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(!!data.session));
+    void supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (isPasswordRecoveryPending()) {
+          setPasswordRecovery(true);
+          setSession(!!data.session);
+          return;
+        }
+        setSession(!!data.session);
+      })
+      .catch((e) => {
+        console.warn("[auth] getSession failed", e instanceof Error ? e.message : e);
+        setSession(false);
+      });
     const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
-      if (event === "PASSWORD_RECOVERY") {
+      if (event === "PASSWORD_RECOVERY" || isPasswordRecoveryPending()) {
+        markPasswordRecoveryPending();
         setPasswordRecovery(true);
-        setSession(true);
+        setSession(!!next);
         return;
       }
       setSession(!!next);
+      if (!next) setPasswordRecovery(false);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -68,9 +92,18 @@ export default function AuthScreen() {
     );
   }
 
-  if (passwordRecovery) return <Redirect href="/auth/reset" />;
+  if (passwordRecovery || isPasswordRecoveryPending()) {
+    return (
+      <Redirect
+        href={{
+          pathname: "/auth/reset",
+          params: email.trim() ? { email: email.trim() } : undefined,
+        }}
+      />
+    );
+  }
   if (session && mode !== "forgot" && mode !== "confirm") {
-    return <Redirect href="/(app)/today" />;
+    return <Redirect href="/(app)/overview" />;
   }
 
   async function handleEmail() {
@@ -82,20 +115,10 @@ export default function AuthScreen() {
           return;
         }
         await requestPasswordReset(email.trim());
-        Alert.alert(
-          "Check your inbox",
-          "If an account exists for that email, we sent a one-time code. Enter it in the next screen.",
-          [
-            {
-              text: "Enter code",
-              onPress: () =>
-                router.push({
-                  pathname: "/auth/reset",
-                  params: { email: email.trim() },
-                }),
-            },
-          ],
-        );
+        router.push({
+          pathname: "/auth/reset",
+          params: { email: email.trim() },
+        });
         return;
       }
       if (mode === "signup") {
@@ -103,19 +126,33 @@ export default function AuthScreen() {
           Alert.alert("Missing details", "Enter your email and password.");
           return;
         }
-        await signUpWithEmail(email.trim(), password, name.trim());
+        const { hasSession } = await signUpWithEmail(email.trim(), password, name.trim());
+        if (hasSession) {
+          trackEvent("auth_sign_in", { method: "email_signup" });
+          router.replace("/(app)/overview");
+          return;
+        }
         setConfirmCode("");
         setMode("confirm");
         Alert.alert(
           "Check your inbox",
-          "We sent a one-time code. Enter it below to confirm your email.",
+          "We sent a one-time code. Enter it below to confirm your email, or try signing in if you already verified.",
         );
         return;
       }
       await signInWithEmail(email.trim(), password);
       trackEvent("auth_sign_in", { method: "email" });
-      router.replace("/(app)/today");
+      router.replace("/(app)/overview");
     } catch (e) {
+      if (mode === "signin" && isEmailNotConfirmedError(e)) {
+        setConfirmCode("");
+        setMode("confirm");
+        Alert.alert(
+          "Confirm your email",
+          "Your project still requires email confirmation for sign-in. Enter the code from your inbox, or resend a new one.",
+        );
+        return;
+      }
       Alert.alert("Error", e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setLoading(false);
@@ -137,7 +174,7 @@ export default function AuthScreen() {
     try {
       await verifySignupOtp(trimmedEmail, trimmedCode);
       trackEvent("auth_sign_in", { method: "email_confirm" });
-      router.replace("/(app)/today");
+      router.replace("/(app)/overview");
     } catch (e) {
       Alert.alert("Invalid code", e instanceof Error ? e.message : "Could not verify code");
     } finally {
@@ -167,7 +204,7 @@ export default function AuthScreen() {
     try {
       await signInWithGoogle();
       trackEvent("auth_sign_in", { method: "google" });
-      router.replace("/(app)/today");
+      router.replace("/(app)/overview");
     } catch (e) {
       const message = e instanceof Error ? e.message : "Google sign in failed";
       const redirectTo = getOAuthRedirectTo();
@@ -201,6 +238,19 @@ export default function AuthScreen() {
     }
   }
 
+  async function handleApple() {
+    setLoading(true);
+    try {
+      await signInWithApple();
+      trackEvent("auth_sign_in", { method: "apple" });
+      router.replace("/(app)/overview");
+    } catch (e) {
+      Alert.alert("Error", e instanceof Error ? e.message : "Apple sign in failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const title =
     mode === "forgot"
       ? "Reset password"
@@ -218,14 +268,36 @@ export default function AuthScreen() {
           ? "Welcome back"
           : "Join the challenge";
 
+  const primaryLabel =
+    mode === "confirm"
+      ? "Confirm email"
+      : mode === "forgot"
+        ? "Send reset code"
+        : mode === "signin"
+          ? "Sign in"
+          : "Create account";
+  const primaryAction = mode === "confirm" ? handleConfirmCode : handleEmail;
+
   return (
-    <SafeAreaView style={styles.container}>
-      <SoftOrbs />
+    <KeyboardScreen
+      style={styles.container}
+      contentContainerStyle={styles.scrollInner}
+      background={<SoftOrbs />}
+      accessory={
+        <KeyboardAccessoryBar
+          primaryLabel={primaryLabel}
+          onPrimaryPress={primaryAction}
+          primaryDisabled={loading}
+        />
+      }
+    >
       <View style={styles.content}>
         <BrandWordmark size="md" />
         <View style={styles.headingBlock}>
-          <Kicker style={{ textAlign: "center" }}>{kicker}</Kicker>
-          <DisplayTitle style={styles.title}>{title}</DisplayTitle>
+          <Kicker style={styles.kicker}>{kicker}</Kicker>
+          <DisplayTitle size="md" style={styles.title}>
+            {title}
+          </DisplayTitle>
         </View>
 
         {GOOGLE_SIGN_IN_ENABLED && mode !== "forgot" && mode !== "confirm" && (
@@ -240,6 +312,21 @@ export default function AuthScreen() {
           </>
         )}
 
+        {APPLE_SIGN_IN_ENABLED &&
+          Platform.OS === "ios" &&
+          mode !== "forgot" &&
+          mode !== "confirm" && (
+            <>
+              <OutlineButton label="Continue with Apple" onPress={handleApple} disabled={loading} />
+
+              <View style={styles.divider}>
+                <View style={styles.line} />
+                <Kicker style={styles.or}>or</Kicker>
+                <View style={styles.line} />
+              </View>
+            </>
+          )}
+
         {mode === "signup" && (
           <TextInput
             style={styles.input}
@@ -248,6 +335,8 @@ export default function AuthScreen() {
             value={name}
             onChangeText={setName}
             autoCapitalize="words"
+            returnKeyType="next"
+            blurOnSubmit={false}
           />
         )}
         <TextInput
@@ -259,9 +348,23 @@ export default function AuthScreen() {
           autoCapitalize="none"
           keyboardType="email-address"
           editable={mode !== "confirm" || !email}
+          returnKeyType={mode === "forgot" ? "done" : mode === "confirm" ? "next" : "next"}
+          blurOnSubmit={mode === "forgot"}
+          onSubmitEditing={() => {
+            if (mode === "forgot") {
+              void handleEmail();
+              return;
+            }
+            if (mode === "confirm") {
+              confirmCodeRef.current?.focus();
+              return;
+            }
+            passwordRef.current?.focus();
+          }}
         />
         {mode === "confirm" && (
           <TextInput
+            ref={confirmCodeRef}
             style={styles.input}
             placeholder="One-time code"
             placeholderTextColor={colors.mutedForeground}
@@ -273,12 +376,15 @@ export default function AuthScreen() {
         )}
         {mode !== "forgot" && mode !== "confirm" && (
           <TextInput
+            ref={passwordRef}
             style={styles.input}
             placeholder="Password"
             placeholderTextColor={colors.mutedForeground}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            returnKeyType="done"
+            onSubmitEditing={handleEmail}
           />
         )}
 
@@ -299,16 +405,14 @@ export default function AuthScreen() {
               style={{ marginTop: 8 }}
             />
             <Pressable onPress={handleResendConfirm} disabled={loading}>
-              <Body style={styles.switchText}>
+              <Body size="sm" style={styles.switchText}>
                 Didn’t get it? <Label style={styles.switchLink}>Resend code</Label>
               </Body>
             </Pressable>
           </>
         ) : (
           <PrimaryButton
-            label={
-              mode === "forgot" ? "Send reset code" : mode === "signin" ? "Sign in" : "Create account"
-            }
+            label={primaryLabel}
             onPress={handleEmail}
             loading={loading}
             style={{ marginTop: 8 }}
@@ -325,7 +429,7 @@ export default function AuthScreen() {
             setMode(mode === "signin" ? "signup" : mode === "signup" ? "signin" : "signin");
           }}
         >
-          <Body style={styles.switchText}>
+          <Body size="sm" style={styles.switchText}>
             {mode === "forgot"
               ? "Remembered it? "
               : mode === "confirm"
@@ -353,7 +457,7 @@ export default function AuthScreen() {
           </Pressable>
         </View>
       </View>
-    </SafeAreaView>
+    </KeyboardScreen>
   );
 }
 
@@ -365,51 +469,63 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   container: {
-    flex: 1,
     backgroundColor: colors.background,
+  },
+  scrollInner: {
     justifyContent: "center",
   },
   content: {
     paddingHorizontal: space.screenX,
     zIndex: 1,
   },
-  headingBlock: { marginTop: space.xl, marginBottom: space.xl },
+  headingBlock: { marginTop: space["2xl"], marginBottom: space["2xl"] },
+  kicker: {
+    textAlign: "center",
+    letterSpacing: 2.5,
+  },
   title: {
     textAlign: "center",
-    marginTop: 8,
-    fontSize: 34,
+    marginTop: space.md,
   },
   input: {
     backgroundColor: colors.card,
     borderRadius: radius["2xl"],
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 12,
-    borderWidth: 1,
+    paddingHorizontal: space.inputX,
+    paddingVertical: space.inputY,
+    marginBottom: space.md,
+    borderWidth: borders.hairline,
     borderColor: colors.ringHairline,
     fontFamily: fonts.sans,
     color: colors.foreground,
-    fontSize: 14,
+    fontSize: typeScale.input.fontSize,
+    lineHeight: typeScale.input.lineHeight,
   },
-  forgotWrap: { alignSelf: "flex-end", marginBottom: 4, marginTop: -4 },
-  forgotLink: { color: colors.mutedForeground, textDecorationLine: "underline" },
+  forgotWrap: { alignSelf: "flex-end", marginBottom: space.xs, marginTop: -4 },
+  forgotLink: {
+    color: colors.mutedForeground,
+    textDecorationLine: "underline",
+  },
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginVertical: 16,
+    gap: space.md,
+    marginVertical: space.p6,
   },
   line: { flex: 1, height: 1, backgroundColor: colors.border },
-  or: { letterSpacing: 1.6 },
-  switchText: { textAlign: "center", marginTop: 20 },
-  switchLink: { textDecorationLine: "underline" },
+  or: { letterSpacing: typeScale.kicker.letterSpacing },
+  switchText: { textAlign: "center", marginTop: space.p6 },
+  switchLink: {
+    textDecorationLine: "underline",
+    fontSize: typeScale.bodySm.fontSize,
+    lineHeight: typeScale.bodySm.lineHeight,
+  },
   legalRow: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
-    marginTop: 24,
+    gap: space.sm,
+    marginTop: space.xl,
   },
-  legalLink: { letterSpacing: 1.5 },
+  legalLink: { letterSpacing: typeScale.kicker.letterSpacing },
   legalSep: { color: colors.mutedForeground },
 });
