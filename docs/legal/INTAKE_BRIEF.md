@@ -10,12 +10,12 @@ Status: draft inputs for counsel review. Fields marked **TO CONFIRM** were not f
 |-------|-------|
 | Trading / brand name | The Feel Good Society |
 | Product name | The Feel Good Challenge |
-| Legal entity name | **TO CONFIRM** (drafts use “The Feel Good Society”) |
-| ABN / company number | **TO CONFIRM** |
+| Legal entity name | The Feel Good Society Pty Ltd (trading as The Feel Good Society) |
+| ABN / company number | **TO CONFIRM** (publish on Support page when counsel provides) |
 | Registered address | **TO CONFIRM** |
 | Support / privacy email | hello@thefeelgoodsociety.com.au |
-| Privacy / data controller | Same entity as operator (**TO CONFIRM**) |
-| Public URLs | https://thefeelgoodsociety.com.au/privacy , /terms |
+| Privacy / data controller | The Feel Good Society Pty Ltd |
+| Public URLs | Privacy/Terms/Support on Supabase `legal` bucket (see `packages/shared/src/legal.ts`) |
 
 ## 2. Jurisdiction
 

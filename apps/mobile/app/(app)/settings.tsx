@@ -13,7 +13,7 @@ import { router } from "expo-router";
 import { isRunningInExpoGo } from "expo";
 import * as ImagePicker from "expo-image-picker";
 import { ArrowLeft } from "@/components/ui/icons";
-import { CHALLENGE_LENGTH, CONTACT_EMAIL, type Profile } from "@feelgood/shared";
+import { CHALLENGE_LENGTH, CONTACT_EMAIL, LEGAL_URLS, type Profile } from "@feelgood/shared";
 import { deleteAccount } from "@/lib/api";
 import { signOut } from "@/lib/auth";
 import {
@@ -267,6 +267,12 @@ export default function SettingsScreen() {
         <Pressable onPress={() => router.push("/terms")}>
           <BrandCard style={styles.row}>
             <Label style={styles.rowTitle}>Terms of Service</Label>
+          </BrandCard>
+        </Pressable>
+        <Pressable onPress={() => Linking.openURL(LEGAL_URLS.support)}>
+          <BrandCard style={styles.row}>
+            <Label style={styles.rowTitle}>Support</Label>
+            <Body>Help, account deletion, and contact</Body>
           </BrandCard>
         </Pressable>
         <Pressable onPress={() => Linking.openURL(`mailto:${CONTACT_EMAIL}`)}>

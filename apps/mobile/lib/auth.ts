@@ -1,4 +1,5 @@
 import * as AppleAuthentication from "expo-apple-authentication";
+import * as Crypto from "expo-crypto";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { Platform } from "react-native";
@@ -277,6 +278,18 @@ export async function signInWithGoogle() {
 
 export const APPLE_SIGN_IN_ENABLED = true;
 
+async function createAppleNonce(): Promise<{ rawNonce: string; hashedNonce: string }> {
+  const bytes = Crypto.getRandomBytes(32);
+  const rawNonce = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  const hashedNonce = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    rawNonce,
+  );
+  return { rawNonce, hashedNonce };
+}
+
 export async function signInWithApple() {
   if (!APPLE_SIGN_IN_ENABLED) {
     throw new Error("Apple Sign In is disabled");
@@ -284,11 +297,13 @@ export async function signInWithApple() {
   if (Platform.OS !== "ios") {
     throw new Error("Apple Sign In is only available on iOS");
   }
+  const { rawNonce, hashedNonce } = await createAppleNonce();
   const credential = await AppleAuthentication.signInAsync({
     requestedScopes: [
       AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
       AppleAuthentication.AppleAuthenticationScope.EMAIL,
     ],
+    nonce: hashedNonce,
   });
   if (!credential.identityToken) {
     throw new Error("No identity token from Apple");
@@ -296,6 +311,7 @@ export async function signInWithApple() {
   const { error } = await supabase.auth.signInWithIdToken({
     provider: "apple",
     token: credential.identityToken,
+    nonce: rawNonce,
   });
   if (error) throw error;
 }

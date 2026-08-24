@@ -11,13 +11,13 @@ export type LegalDocument = {
   sections: LegalSection[];
 };
 
-export const LEGAL_LAST_UPDATED = "24 July 2026";
+export const LEGAL_LAST_UPDATED = "24 August 2026";
 
 export const privacyPolicy: LegalDocument = {
   title: "Privacy Policy",
   lastUpdated: LEGAL_LAST_UPDATED,
   intro: [
-    'The Feel Good Society ("we", "us", "our") operates the 55-day Feel Good Challenge on thefeelgoodsociety.com.au and related iOS/Android apps (the "Service"). This Privacy Policy explains what personal information we collect, how we use it, who can access it, and the choices you have.',
+    'The Feel Good Society Pty Ltd ("we", "us", "our"), trading as The Feel Good Society, operates the 55-day Feel Good Challenge on thefeelgoodsociety.com.au and related iOS/Android apps (the "Service"). This Privacy Policy explains what personal information we collect, how we use it, who can access it, and the choices you have.',
     "The Service is a wellness and habit-building program. It is not a medical service.",
     "We handle personal information in line with the Australian Privacy Act 1988 (Cth) and the Australian Privacy Principles where they apply. If you are outside Australia, your information may still be processed in Australia or in other countries where our service providers operate.",
   ],
@@ -30,7 +30,7 @@ export const privacyPolicy: LegalDocument = {
         "Display name (optional / profile)",
         "Password (stored hashed; never stored in plain text)",
         "User ID",
-        "Sign-in via Google or Apple when you choose those options (we receive identifiers and profile details those providers share with us for authentication)",
+        "Sign-in via Apple (iOS) when you choose that option; email/password is always available. Google Sign-In may be offered in some builds when enabled (we receive identifiers and profile details those providers share with us for authentication)",
       ],
     },
     {
@@ -45,10 +45,10 @@ export const privacyPolicy: LegalDocument = {
     },
     {
       paragraphs: [
-        "Media (optional): weekly progress photos and vision board images. These files are stored in private storage and are not published without your explicit permission.",
-        "Testimonials: if you submit a review (for example at Day 55), we store the text, rating, display name, and whether you grant permission to publish. Testimonials remain private until you grant publish permission and an admin approves them. Public testimonials show your chosen display name only.",
+        "Media (optional): weekly progress photos, vision board images, and profile photos. These files are stored in private storage and are not published without your explicit permission. When you delete your account, we delete the associated database records and remove these private media objects from storage as part of the same deletion process.",
+        "Testimonials: if you submit a review (for example at Day 55), we store the text, rating, display name, and whether you grant permission to publish. Testimonials remain private until you grant publish permission and an admin approves them. Public testimonials show your chosen display name only and are not shown as a social feed inside the iOS app.",
         "Device and technical data: push notification device tokens (mobile), a first-party session cookie on the website to keep you signed in, and basic technical logs needed to operate and secure the Service (for example IP address in server logs).",
-        "What we do not collect (current product): we do not use HealthKit or similar OS health APIs. We do not collect precise location, contacts, or financial account details through the Service. We do not run third-party advertising cookies.",
+        "What we do not collect (current product): we do not use HealthKit or similar OS health APIs. We do not collect precise location, contacts, or financial account details through the Service. We do not run third-party advertising cookies. Self-reported habit and wellbeing fields (for example water intake, movement minutes, mood, energy, stress, sleep quality) are stored as part of challenge tracking only.",
       ],
     },
     {
@@ -119,7 +119,7 @@ export const privacyPolicy: LegalDocument = {
       paragraphs: [
         "We keep personal information while your account is active and as needed to provide the Service.",
         "When you delete your account in Settings, or request deletion by email, we delete your account and associated personal data from our primary systems within 30 days, except where we must retain limited information for legal, security, dispute, or accounting reasons (for example records of a prize payout or abuse investigation).",
-        "Account deletion removes linked challenge data, private media records, device tokens, and profile data via our deletion process, then deletes the authentication user.",
+        "Account deletion removes linked challenge data, private media objects in storage (profile photos, weekly progress photos, and vision-board images), device tokens, and profile data via our deletion process, then deletes the authentication user.",
       ],
     },
     {
@@ -168,7 +168,8 @@ export const privacyPolicy: LegalDocument = {
       heading: "14. Contact",
       paragraphs: [
         "Privacy questions and requests: hello@thefeelgoodsociety.com.au.",
-        "For registered business details (ABN and postal address), contact us at the same email. Trading as The Feel Good Society.",
+        "Operator: The Feel Good Society Pty Ltd, trading as The Feel Good Society. For ABN and registered postal address, contact us at the same email.",
+        "Support page: see the Support URL published with the mobile apps (hosted support page with contact details).",
       ],
     },
   ],
@@ -178,7 +179,7 @@ export const termsOfService: LegalDocument = {
   title: "Terms of Service",
   lastUpdated: LEGAL_LAST_UPDATED,
   intro: [
-    'The Feel Good Society ("we", "us", "our") operates The Feel Good Challenge on the website at thefeelgoodsociety.com.au and related iOS/Android apps (the "Service").',
+    'The Feel Good Society Pty Ltd ("we", "us", "our"), trading as The Feel Good Society, operates The Feel Good Challenge on the website at thefeelgoodsociety.com.au and related iOS/Android apps (the "Service").',
     'By creating an account, accessing, or using the Service, you agree to these Terms of Service ("Terms") and our Privacy Policy. If you do not agree, do not use the Service.',
   ],
   sections: [
@@ -206,7 +207,7 @@ export const termsOfService: LegalDocument = {
     {
       heading: "4. Accounts and security",
       paragraphs: [
-        "You may register with email and password or via supported third-party sign-in (such as Google or Apple).",
+        "You may register with email and password or via supported third-party sign-in (such as Sign in with Apple on iOS). Google Sign-In may be offered when enabled in a given release.",
         "You are responsible for keeping your credentials and device access secure; all activity under your account; and notifying us promptly at hello@thefeelgoodsociety.com.au if you suspect unauthorised use.",
         "We may suspend or terminate accounts that violate these Terms, create risk to other users or the Service, or appear fraudulent or abusive.",
       ],
@@ -321,7 +322,7 @@ export const termsOfService: LegalDocument = {
       heading: "17. Contact",
       paragraphs: [
         "Questions about these Terms: hello@thefeelgoodsociety.com.au.",
-        "For registered business details (ABN and postal address), contact us at the same email. Trading as The Feel Good Society.",
+        "Operator: The Feel Good Society Pty Ltd, trading as The Feel Good Society. For ABN and registered postal address, contact us at the same email.",
       ],
     },
   ],

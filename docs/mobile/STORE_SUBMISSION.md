@@ -7,14 +7,28 @@ Full path: [SUBMIT_CHECKLIST.md](./SUBMIT_CHECKLIST.md)
 - [ ] Apple Developer Program ($99/year)
 - [ ] App Store Connect app record
 - [ ] Bundle ID: `com.feelgoodsociety.challenge`
-- [ ] Privacy Policy URL (hosted) — see STORE_LISTING.md
-- [ ] Terms URL (hosted)
-- [ ] Apple Sign In enabled (required with Google)
-- [ ] App Privacy nutrition labels — [APPLE_PRIVACY.md](./APPLE_PRIVACY.md)
+- [ ] Age rating **16+** (must match Terms; never 4+)
+- [ ] Screenshots per [SCREENSHOTS.md](./SCREENSHOTS.md)
+- [ ] Privacy Policy URL: `…/legal/privacy.html` (see STORE_LISTING.md)
+- [ ] Terms URL: `…/legal/terms.html`
+- [ ] Support URL: `https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/legal/support.html`
+- [ ] App Privacy nutrition labels — [APPLE_PRIVACY.md](./APPLE_PRIVACY.md) (include Fitness + Health self-reported)
+- [ ] Review Information: demo email + password from provision script (never in git)
+- [ ] Review Notes: copy from [STORE_LISTING.md](./STORE_LISTING.md) / [REVIEW_ACCOUNT.md](./REVIEW_ACCOUNT.md)
 - [ ] Screenshots: 6.7", 6.5", 5.5" iPhone
-- [ ] TestFlight internal → external beta
-- [ ] App Review: habit tracker positioning, no medical claims
-- [x] Account deletion in Settings (implemented)
+- [ ] TestFlight build **1.1.2** installed; Apple Sign-In on physical iPhone
+- [ ] PrivacyInfo.xcprivacy checked per [PRIVACY_MANIFEST_CHECK.md](./PRIVACY_MANIFEST_CHECK.md)
+- [x] Demo / Review account provisioned in production (`appstore.review@…`)
+- [x] Account deletion in Settings (Storage purge included)
+
+## Connect fill order (after IPA)
+
+1. App Privacy answers from APPLE_PRIVACY.md  
+2. Support URL (support.html above)  
+3. Review Information username/password + Review Notes  
+4. Upload screenshots  
+5. Submit for review when TestFlight smoke + Apple Sign-In pass  
+
 
 ## Google Play
 

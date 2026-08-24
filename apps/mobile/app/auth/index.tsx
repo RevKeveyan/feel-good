@@ -383,6 +383,13 @@ export default function AuthScreen() {
           />
         )}
 
+        {mode === "signup" ? (
+          <Body size="sm" style={styles.ageNotice}>
+            By creating an account you confirm you are at least 16 years old and agree to the Terms
+            of Service and Privacy Policy.
+          </Body>
+        ) : null}
+
         {mode === "signin" && (
           <Pressable onPress={() => setMode("forgot")} style={styles.forgotWrap}>
             <Body size="sm" style={styles.forgotLink}>
@@ -496,6 +503,11 @@ const styles = StyleSheet.create({
     lineHeight: typeScale.input.lineHeight,
   },
   forgotWrap: { alignSelf: "flex-end", marginBottom: space.xs, marginTop: -4 },
+  ageNotice: {
+    color: colors.mutedForeground,
+    marginBottom: space.sm,
+    textAlign: "center",
+  },
   forgotLink: {
     color: colors.mutedForeground,
     textDecorationLine: "underline",

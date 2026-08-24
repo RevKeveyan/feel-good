@@ -6,6 +6,7 @@ Generated HTML for store Privacy Policy / Terms of Service.
 
 - https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/legal/privacy.html
 - https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/legal/terms.html
+- https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/legal/support.html
 
 Rebuild and upload after editing `packages/shared/src/legal-content.ts`:
 

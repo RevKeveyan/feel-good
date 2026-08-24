@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "Feel Good Challenge",
+    "name": "The Feel Good Challenge",
     "slug": "feel-good-challenge",
     "scheme": "feelgood",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -75,6 +75,7 @@
     "extra": {
       "legalPrivacyUrl": "https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/legal/privacy.html",
       "legalTermsUrl": "https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/legal/terms.html",
+      "legalSupportUrl": "https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/legal/support.html",
       "router": {
         "origin": false
       },

@@ -1,9 +1,55 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const MEDIA_BUCKETS = ["avatars", "weekly-photos", "vision-board"] as const;
+
+const USER_TABLES = [
+  { table: "device_tokens", column: "user_id" },
+  { table: "struggle_moments", column: "user_id" },
+  { table: "weekly_photos", column: "user_id" },
+  { table: "vision_board_items", column: "user_id" },
+  { table: "transformation_wheel", column: "user_id" },
+  { table: "onboarding_responses", column: "user_id" },
+  { table: "daily_entries", column: "user_id" },
+  { table: "testimonials", column: "user_id" },
+  { table: "user_roles", column: "user_id" },
+  { table: "profiles", column: "id" },
+] as const;
+
+async function deleteTableRows(
+  admin: SupabaseClient,
+  table: string,
+  column: string,
+  userId: string,
+) {
+  const { error } = await admin.from(table).delete().eq(column, userId);
+  if (error) {
+    throw new Error(`Failed to delete ${table}: ${error.message}`);
+  }
+}
+
+async function purgeUserStorage(admin: SupabaseClient, userId: string) {
+  for (const bucket of MEDIA_BUCKETS) {
+    const { data: entries, error: listError } = await admin.storage.from(bucket).list(userId, {
+      limit: 1000,
+      offset: 0,
+    });
+    if (listError) {
+      throw new Error(`Failed to list ${bucket}/${userId}: ${listError.message}`);
+    }
+    if (!entries?.length) continue;
+
+    const paths = entries.map((entry) => `${userId}/${entry.name}`);
+    const { error: removeError } = await admin.storage.from(bucket).remove(paths);
+    if (removeError) {
+      throw new Error(`Failed to remove ${bucket} objects: ${removeError.message}`);
+    }
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -36,16 +82,11 @@ Deno.serve(async (req) => {
     const userId = userData.user.id;
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-    await supabaseAdmin.from("device_tokens").delete().eq("user_id", userId);
-    await supabaseAdmin.from("struggle_moments").delete().eq("user_id", userId);
-    await supabaseAdmin.from("weekly_photos").delete().eq("user_id", userId);
-    await supabaseAdmin.from("vision_board_items").delete().eq("user_id", userId);
-    await supabaseAdmin.from("transformation_wheel").delete().eq("user_id", userId);
-    await supabaseAdmin.from("onboarding_responses").delete().eq("user_id", userId);
-    await supabaseAdmin.from("daily_entries").delete().eq("user_id", userId);
-    await supabaseAdmin.from("testimonials").delete().eq("user_id", userId);
-    await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
-    await supabaseAdmin.from("profiles").delete().eq("id", userId);
+    await purgeUserStorage(supabaseAdmin, userId);
+
+    for (const { table, column } of USER_TABLES) {
+      await deleteTableRows(supabaseAdmin, table, column, userId);
+    }
 
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
     if (deleteError) {

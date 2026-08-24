@@ -1,12 +1,12 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
+import { authStorage } from "./auth-storage";
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const key = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 if (!url || !key) {
   console.warn("[Supabase] Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
-} else {
+} else if (__DEV__) {
   try {
     const parsed = new URL(url);
     console.log(`[Supabase] host=${parsed.host}`);
@@ -17,7 +17,7 @@ if (!url || !key) {
 
 export const supabase = createClient(url ?? "", key ?? "", {
   auth: {
-    storage: AsyncStorage,
+    storage: authStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,

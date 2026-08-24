@@ -1,30 +1,48 @@
 # Apple App Privacy — Nutrition Labels
 
 Fill App Store Connect → App Privacy using this map.
+Last reviewed: 24 August 2026.
+
+Definitions: **Collected** = transmitted off device. **Linked** = tied to the user account. **Tracking** = Apple’s cross-app advertising tracking definition — **No** for the current build (no ATT, no ads SDKs, analytics stub only).
 
 ## Data collected
 
 | Data type | Linked to user? | Used for tracking? | Purpose |
 |-----------|-----------------|--------------------|---------|
-| Email address | Yes | No | Account |
-| Name | Yes | No | Account / profile |
-| User ID | Yes | No | App functionality |
-| Photos | Yes | No | App functionality (vision board, weekly progress) |
-| Other user content | Yes | No | Check-ins, letters, testimonials |
-| Product interaction | Yes | No | Analytics (if Sentry/PostHog enabled) |
-| Crash data | Yes | No | Analytics (if Sentry enabled) |
-| Device ID (push token) | Yes | No | App functionality (notifications) |
+| Email Address | Yes | No | App Functionality (Account) |
+| Name | Yes | No | App Functionality (Account / profile) |
+| User ID | Yes | No | App Functionality |
+| Photos or Videos | Yes | No | App Functionality (vision board, weekly progress, avatar) |
+| Other User Content | Yes | No | App Functionality (check-ins, letters, testimonials, notes) |
+| Fitness | Yes | No | App Functionality (self-reported water, movement minutes/type, sleep quality) |
+| Health | Yes | No | App Functionality (self-reported energy, mood, stress, motivation — habit tracking only; **not** HealthKit) |
+| Device ID | Yes | No | App Functionality (Expo push token when reminders enabled) |
+| Product Interaction | No (production) | No | Only if Sentry/PostHog later enabled — update this table first |
+| Crash Data | No (production) | No | Only if Sentry later enabled — update this table first |
 
 ## Not collected
-- Health & Fitness (HealthKit) — **not used**
+
 - Precise location
-- Financial info
+- Financial info / payment info (no IAP in current build)
 - Contacts
 - Browsing history
+- Advertising data / advertising identifier
+- HealthKit / motion & fitness OS APIs
 
 ## Privacy Policy URL
+
 https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/legal/privacy.html
 
+## Support URL
+
+https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/legal/support.html
+
+## Terms URL
+
+https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/legal/terms.html
+
 ## Account deletion
+
 In-app: Settings → Delete account  
-Also via email: hello@thefeelgoodsociety.com.au
+Also via email: hello@thefeelgoodsociety.com.au  
+Deletes Auth user, challenge tables, device tokens, and private Storage objects (avatars, weekly-photos, vision-board).

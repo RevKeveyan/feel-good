@@ -75,12 +75,13 @@ export default function MindsetScreen() {
             <Headphones size={iconSizes.md} color={colors.foreground} strokeWidth={2} />
           </View>
           <View style={styles.headerCopy}>
-            <Kicker>21-Day Mindset Rewire</Kicker>
+            <Kicker>21-Day Mindset Practice</Kicker>
             <DisplayTitle size="sm" style={styles.headerTitle}>
               One Session. One Moment.
             </DisplayTitle>
             <Body size="sm" style={styles.headerBody}>
-              Guided tracks designed to strengthen confidence, nurture emotional wellbeing and cultivate calm - helping you feel good, for good.
+              Guided tracks to support confidence, calm, and consistent habits — helping you feel
+              good, for good. This is wellness support, not medical advice.
             </Body>
           </View>
         </View>

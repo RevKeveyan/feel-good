@@ -1,6 +1,7 @@
 export const LEGAL_URLS = {
   privacy: "https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/legal/privacy.html",
   terms: "https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/legal/terms.html",
+  support: "https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/legal/support.html",
   supportEmail: "hello@thefeelgoodsociety.com.au",
 } as const;
 
