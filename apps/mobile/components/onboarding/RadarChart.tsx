@@ -38,7 +38,7 @@ export function RadarChart({ axes, values, size = 260, max = 10 }: Props) {
           <RadialGradient id={fillId} cx="50%" cy="50%" r="50%">
             <Stop offset="0%" stopColor={colors.primary} stopOpacity={0.3} />
             <Stop offset="65%" stopColor={colors.secondary} stopOpacity={0.32} />
-            <Stop offset="100%" stopColor={colors.card} stopOpacity={0.2} />
+            <Stop offset="100%" stopColor={colors.white} stopOpacity={0.2} />
           </RadialGradient>
         </Defs>
         {gridLevels.map((lvl) => {
@@ -88,7 +88,7 @@ export function RadarChart({ axes, values, size = 260, max = 10 }: Props) {
             cx={p.x}
             cy={p.y}
             r={3.5}
-            fill={colors.card}
+            fill={colors.white}
             stroke={colors.primary}
             strokeWidth={1.5}
           />

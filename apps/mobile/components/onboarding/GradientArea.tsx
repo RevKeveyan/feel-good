@@ -12,7 +12,6 @@ type Props = {
   backdrop?: ReactNode;
 };
 
-/** Web `rounded-3xl ring-1 ring-black/5 bg-gradient-to-br` panel. */
 export function GradientArea({
   colorsStops,
   children,

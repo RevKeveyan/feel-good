@@ -12,6 +12,7 @@ type Tone = {
   glowB: Glow;
 };
 
+/** Mirrors NEW web STEP_TONES in src/routes/_authenticated/onboarding.tsx */
 const STEP_TONES: Record<OnboardingStep, Tone> = {
   welcome: {
     bg: [colors.card, colors.background],
@@ -102,5 +103,8 @@ export const StepToneBackground = memo(function StepToneBackground({ step }: Pro
 });
 
 const styles = StyleSheet.create({
-  base: { overflow: "hidden" },
+  base: {
+    overflow: "hidden",
+    backgroundColor: colors.background,
+  },
 });

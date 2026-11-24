@@ -30,6 +30,7 @@ export const gradients = {
     withAlpha(colors.secondary, 0.3),
   ] as const,
   visionAdd: [withAlpha(colors.secondary, 0.2), colors.card, withAlpha(colors.primary, 0.2)] as const,
+  letter: [colors.card, colors.background, withAlpha(colors.secondary, 0.4)] as const,
   doneHero: [colors.secondary, colors.primary, colors.secondary] as const,
   day55Banner: [colors.primary, withAlpha(colors.primary, 0.8)] as const,
   completeSoft: [

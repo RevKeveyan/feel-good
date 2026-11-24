@@ -361,11 +361,7 @@ export default function OnboardingScreen() {
               })}
             </View>
             {hasOther && (
-              <GradientArea
-                colorsStops={[colors.card, withAlpha(colors.secondary, 0.3)]}
-                style={styles.goalsOther}
-                contentStyle={styles.goalsOtherInner}
-              >
+              <View style={styles.goalsOther}>
                 <Kicker style={styles.goalsOtherLabel}>
                   Tell us what &quot;Other&quot; means to you
                 </Kicker>
@@ -380,7 +376,7 @@ export default function OnboardingScreen() {
                   returnKeyType="default"
                   blurOnSubmit={false}
                 />
-              </GradientArea>
+              </View>
             )}
           </View>
         )}
@@ -481,15 +477,17 @@ export default function OnboardingScreen() {
         )}
 
         {step === "vision" && (
-          <VisionBoardGrid userId={uid} contentWidth={visionContentWidth} />
+          <VisionBoardGrid
+            userId={uid}
+            contentWidth={visionContentWidth}
+            lockNote="Only you can see these images."
+            showCounter={false}
+          />
         )}
 
         {step === "letter" && (
           <>
-            <GradientArea
-              colorsStops={[colors.card, colors.background, withAlpha(colors.secondary, 0.4)]}
-              contentStyle={styles.cardPad5}
-            >
+            <GradientArea colorsStops={gradients.letter} contentStyle={styles.cardPad5}>
               <TextInput
                 style={styles.letterInput}
                 placeholder="Dear future me,"
@@ -625,7 +623,7 @@ function stepSubtitle(step: OnboardingStep): string | null {
     why: "Short answers. First instinct is usually the truest.",
     goals: "Pick as many as feel true. We'll come back to these on Day 55.",
     commitment: null,
-    wheel: "Rate where you are today across nine areas. You'll rate again on Day 55, this is how you rate yourself right now.",
+    wheel: "Rate where you are today across nine areas. You'll rate again on Day 55, this is your before.",
     "why-statement": "Write it once. We'll show it back to you on Day 55.",
     vision:
       "Upload up to 8 images that show what you're moving toward. Family, holiday, a dress, the version of you you're becoming. Private to you.",
@@ -674,9 +672,13 @@ const styles = StyleSheet.create({
     fontSize: typeScale.stepTitle.fontSize,
     lineHeight: typeScale.stepTitle.lineHeight,
     letterSpacing: typeScale.stepTitle.letterSpacing,
+    color: colors.foreground,
     marginBottom: space.lg,
   },
-  subtitle: { marginBottom: space["2xl"] },
+  subtitle: {
+    marginBottom: space["2xl"],
+    color: colors.mutedForeground,
+  },
   cardPad5: { padding: space.p5 },
   cardPad6: { padding: space.p6 },
   cardPad8: { padding: space.p8 },
@@ -740,15 +742,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 0,
   },
-  goalsOther: { marginTop: space.lg, borderRadius: radius["2xl"] },
-  goalsOtherInner: { padding: space.lg },
+  goalsOther: { marginTop: space.lg },
   goalsOtherLabel: {
     marginBottom: space.sm,
     color: colors.mutedForeground,
   },
   goalsOtherInput: {
-    minHeight: 96,
-    backgroundColor: withAlpha(colors.card, 0.6),
+    minHeight: 48,
+    backgroundColor: colors.card,
     borderRadius: radius["2xl"],
     borderWidth: borders.hairline,
     borderColor: colors.ringHairline,
@@ -763,6 +764,7 @@ const styles = StyleSheet.create({
     fontSize: typeScale.quote.fontSize,
     lineHeight: typeScale.quote.lineHeight,
     letterSpacing: typeScale.quote.letterSpacing,
+    color: colors.foreground,
     marginBottom: space.xl,
   },
   commitmentKicker: {
@@ -789,8 +791,6 @@ const styles = StyleSheet.create({
   commitmentAgree: {
     marginTop: space.xl,
     paddingVertical: space.md,
-    shadowOpacity: 0,
-    elevation: 0,
   },
   commitmentAgreeDisabled: {
     opacity: opacity.disabledSoft,
@@ -827,6 +827,7 @@ const styles = StyleSheet.create({
     fontSize: typeScale.quote.fontSize,
     lineHeight: typeScale.quote.lineHeight,
     letterSpacing: typeScale.quote.letterSpacing,
+    color: colors.foreground,
     marginBottom: space.lg,
   },
   doneBody: {
@@ -844,5 +845,8 @@ const styles = StyleSheet.create({
   navRowDone: { marginTop: space["2xl"] },
   backBtn: { gap: space.xs },
   nextCta: { paddingVertical: 14 },
-  doneCta: { flex: 1, paddingVertical: space.lg },
+  doneCta: {
+    flex: 1,
+    paddingVertical: space.lg,
+  },
 });

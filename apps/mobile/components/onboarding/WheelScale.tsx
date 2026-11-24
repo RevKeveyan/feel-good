@@ -69,8 +69,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: space.md,
+    alignItems: "center",
     marginBottom: space.md,
   },
   label: {
@@ -85,7 +84,7 @@ const styles = StyleSheet.create({
     fontSize: typeScale.bodySm.fontSize,
     color: colors.mutedForeground,
   },
-  dots: { flexDirection: "row", gap: space.xs },
+  dots: { flexDirection: "row", gap: 4 },
   dotWrap: { flex: 1 },
   dot: {
     height: 32,

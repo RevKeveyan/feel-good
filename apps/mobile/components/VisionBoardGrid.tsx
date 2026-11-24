@@ -28,9 +28,16 @@ const BUCKET = "vision-board";
 type Props = {
   userId: string | null;
   contentWidth: number;
+  lockNote?: string;
+  showCounter?: boolean;
 };
 
-export function VisionBoardGrid({ userId, contentWidth }: Props) {
+export function VisionBoardGrid({
+  userId,
+  contentWidth,
+  lockNote = "Only you can see these. Tap a photo to replace it.",
+  showCounter = true,
+}: Props) {
   const [items, setItems] = useState<VisionItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const tileWidth = Math.floor((contentWidth - VISION_GAP) / 2);
@@ -207,15 +214,17 @@ export function VisionBoardGrid({ userId, contentWidth }: Props) {
           />
         )}
       </View>
-      <Kicker style={styles.counter}>
-        {items.length} of {VISION_LIMIT}
-      </Kicker>
+      {showCounter ? (
+        <Kicker style={styles.counter}>
+          {items.length} of {VISION_LIMIT}
+        </Kicker>
+      ) : null}
       <IconLabel
         style={styles.lockNote}
         gap={space.sm}
         icon={<Lock size={iconSizes.xs} color={colors.mutedForeground} strokeWidth={2} />}
       >
-        <Body size="sm">Only you can see these. Tap a photo to replace it.</Body>
+        <Body size="sm">{lockNote}</Body>
       </IconLabel>
     </View>
   );
