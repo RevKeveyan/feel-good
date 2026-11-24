@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { MindsetLibrary } from "@/components/MindsetLibrary";
+import { requireAreaApproval } from "@/lib/area-access.guard";
 
 export const Route = createFileRoute("/_authenticated/mindset")({
+  beforeLoad: () => requireAreaApproval("challenge"),
   head: () => ({
     meta: [
       { title: "21-Day Mindset Rewire, The Feel Good Challenge" },
@@ -11,6 +13,10 @@ export const Route = createFileRoute("/_authenticated/mindset")({
         content:
           "Guided tracks designed to strengthen confidence, nurture emotional wellbeing and cultivate calm.",
       },
+      { property: "og:title", content: "21-Day Mindset Rewire, The Feel Good Challenge" },
+      { property: "og:description", content: "Guided tracks designed to strengthen confidence, nurture emotional wellbeing and cultivate calm." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: MindsetPage,

@@ -1,7 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Camera, Flame, CheckCircle2, Lock, Heart } from "lucide-react";
+import { Camera, Flame, CheckCircle2, Lock, Heart, CalendarDays, LayoutGrid } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { requireAreaApproval } from "@/lib/area-access.guard";
 import { MindsetLibrary } from "@/components/MindsetLibrary";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -27,8 +29,16 @@ import {
 import { quoteForDate } from "@/lib/quotes";
 
 export const Route = createFileRoute("/_authenticated/today")({
+  beforeLoad: () => requireAreaApproval("challenge"),
   head: () => ({
-    meta: [{ title: "Today, The Feel Good Challenge" }],
+    meta: [
+      { title: "Today, The Feel Good Challenge" },
+      { name: "description", content: "Your daily habits and check-in for The Feel Good Challenge." },
+      { property: "og:title", content: "Today, The Feel Good Challenge" },
+      { property: "og:description", content: "Your daily habits and check-in for The Feel Good Challenge." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
   }),
   component: TodayPage,
 });
@@ -45,6 +55,7 @@ type WeeklyPhoto = {
 
 function TodayPage() {
   const navigate = useNavigate();
+  const { queryClient } = Route.useRouteContext();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [entry, setEntry] = useState<DailyEntry | null>(null);
   const [allEntries, setAllEntries] = useState<DailyEntry[]>([]);
@@ -186,6 +197,8 @@ function TodayPage() {
   }
 
   async function handleSignOut() {
+    await queryClient.cancelQueries();
+    queryClient.clear();
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
@@ -234,13 +247,29 @@ function TodayPage() {
             </span>
           </h1>
         </div>
-        <button
-          onClick={handleSignOut}
-          className="size-10 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20"
-          title="Sign out"
-        >
-          <span className="text-xs font-semibold text-primary">{initials}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate({ to: "/all-days" })}
+            className="size-10 rounded-full bg-card flex items-center justify-center ring-1 ring-foreground/10"
+            title="All days"
+          >
+            <CalendarDays className="size-4 text-muted-foreground" />
+          </button>
+          <Button variant="ghost" size="icon"
+            onClick={() => navigate({ to: "/app" })}
+            className="size-10 rounded-full bg-card flex items-center justify-center ring-1 ring-foreground/10"
+            title="App areas" aria-label="App areas"
+          >
+            <LayoutGrid className="size-4 text-muted-foreground" />
+          </Button>
+          <button
+            onClick={handleSignOut}
+            className="size-10 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20"
+            title="Sign out"
+          >
+            <span className="text-xs font-semibold text-primary">{initials}</span>
+          </button>
+        </div>
       </header>
 
       {/* Day 55 unlock CTA */}
@@ -248,7 +277,7 @@ function TodayPage() {
         <section className="px-6 mb-4 animate-entrance">
           <button
             onClick={() => navigate({ to: "/complete" })}
-            className="w-full rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-5 text-left flex items-center justify-between ring-1 ring-primary/20"
+            className="w-full rounded-2xl bg-linear-to-br from-primary to-primary/80 text-primary-foreground p-5 text-left flex items-center justify-between ring-1 ring-primary/20"
           >
             <div>
               <p className="font-mono text-[10px] uppercase tracking-widest opacity-80">Day 55 · Unlocked</p>
@@ -276,7 +305,7 @@ function TodayPage() {
 
       {/* Daily quote */}
       <section className="px-6 mb-6 animate-entrance">
-        <div className="rounded-3xl bg-gradient-to-br from-[color:var(--lime)]/25 via-card to-[color:var(--destructive)]/25 ring-1 ring-black/5 p-6 relative overflow-hidden">
+        <div className="rounded-3xl bg-linear-to-br from-[color:var(--lime)]/25 via-card to-[color:var(--destructive)]/25 ring-1 ring-foreground/5 p-6 relative overflow-hidden">
           <div className="pointer-events-none absolute -top-10 -right-10 size-40 rounded-full bg-[color:var(--accent)]/40 blur-3xl" />
           <p className="font-mono text-[10px] uppercase tracking-widest text-primary mb-3 relative">
             Today's reminder
@@ -292,7 +321,7 @@ function TodayPage() {
 
       {/* View tabs */}
       <section className="px-6 mb-6 animate-entrance">
-        <div className="inline-flex w-full rounded-full bg-card ring-1 ring-black/5 p-1">
+        <div className="inline-flex w-full rounded-full bg-card ring-1 ring-foreground/5 p-1">
           {(["today", "mindset"] as const).map((v) => (
             <button
               key={v}
@@ -317,7 +346,7 @@ function TodayPage() {
 
       {/* Streak & journey */}
       <section className="px-6 mb-6 grid grid-cols-2 gap-3 animate-entrance">
-        <div className="rounded-2xl p-4 ring-1 ring-[color:var(--destructive)]/30 bg-gradient-to-br from-[color:var(--destructive)]/25 to-[color:var(--accent)]/25">
+        <div className="rounded-2xl p-4 ring-1 ring-[color:var(--destructive)]/30 bg-linear-to-br from-[color:var(--destructive)]/25 to-[color:var(--accent)]/25">
           <div className="flex items-center gap-2 mb-1">
             <Flame className="size-4 text-[color:var(--destructive)]" />
             <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/70">
@@ -334,7 +363,7 @@ function TodayPage() {
             {streak === 0 ? "Complete today to start" : "Keep it going"}
           </p>
         </div>
-        <div className="rounded-2xl p-4 ring-1 ring-[color:var(--lime)]/50 bg-gradient-to-br from-[color:var(--lime)]/30 to-card">
+        <div className="rounded-2xl p-4 ring-1 ring-[color:var(--lime)]/50 bg-linear-to-br from-[color:var(--lime)]/30 to-card">
           <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/70 mb-1">
             Journey
           </p>
@@ -342,9 +371,9 @@ function TodayPage() {
             {journeyPct}
             <span className="text-xs font-sans not-italic text-muted-foreground ml-0.5">%</span>
           </p>
-          <div className="mt-2 h-1.5 w-full bg-black/10 rounded-full overflow-hidden">
+          <div className="mt-2 h-1.5 w-full bg-foreground/10 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-[color:var(--lime)] to-[color:var(--accent)] transition-all"
+              className="h-full bg-linear-to-r from-[color:var(--lime)] to-[color:var(--accent)] transition-all"
               style={{ width: `${Math.min(100, journeyPct)}%` }}
             />
           </div>
@@ -357,7 +386,7 @@ function TodayPage() {
 
       {/* Score Ring */}
       <section className="px-6 mb-8 animate-entrance">
-        <div className="rounded-3xl p-8 ring-1 ring-black/5 flex flex-col items-center relative overflow-hidden bg-gradient-to-br from-card via-[color:var(--lime)]/10 to-[color:var(--destructive)]/15">
+        <div className="rounded-3xl p-8 ring-1 ring-foreground/5 flex flex-col items-center relative overflow-hidden bg-linear-to-br from-card via-[color:var(--lime)]/10 to-[color:var(--destructive)]/15">
           <div className="pointer-events-none absolute -bottom-16 -left-16 size-48 rounded-full bg-[color:var(--accent)]/25 blur-3xl" />
           <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
             <h2 className="font-display italic text-6xl">55</h2>
@@ -366,13 +395,12 @@ function TodayPage() {
             <svg className="size-full -rotate-90 drop-shadow-sm" viewBox="0 0 36 36">
               <defs>
                 <linearGradient id="score-arc" x1="0" x2="1" y1="0" y2="1">
-                  <stop offset="0%" stopColor="#CCDA18" />
-                  <stop offset="60%" stopColor="#E1C340" />
-                  <stop offset="100%" stopColor="#DD9B9B" />
+                  <stop offset="0%" stopColor="var(--brand-red)" />
+                  <stop offset="100%" stopColor="var(--brand-pink)" />
                 </linearGradient>
               </defs>
               <path
-                stroke="#222222"
+                stroke="var(--foreground)"
                 strokeOpacity={0.1}
                 strokeWidth="2.5"
                 fill="none"
@@ -449,7 +477,7 @@ function TodayPage() {
           {/* Move */}
           <div
             className={`bg-card rounded-2xl p-4 ring-1 animate-entrance ${
-              entry?.move_done ? "ring-black/5" : "ring-primary/30"
+              entry?.move_done ? "ring-foreground/5" : "ring-primary/30"
             } flex items-center gap-4`}
           >
             <button
@@ -485,7 +513,7 @@ function TodayPage() {
           {/* Mindset */}
           <div
             className={`bg-card rounded-2xl p-4 ring-1 animate-entrance ${
-              entry?.mindset ? "ring-black/5" : "ring-primary/30"
+              entry?.mindset ? "ring-foreground/5" : "ring-primary/30"
             } flex items-center gap-4`}
           >
             <button
@@ -519,7 +547,7 @@ function TodayPage() {
           </div>
 
           {/* Hydrate */}
-          <div className="bg-card rounded-2xl p-4 ring-1 ring-black/5 animate-entrance">
+          <div className="bg-card rounded-2xl p-4 ring-1 ring-foreground/5 animate-entrance">
             <div className="flex items-center gap-4 mb-4">
               <div className="size-6 rounded-full border-2 border-primary/30 flex items-center justify-center shrink-0">
                 <div className="size-1.5 rounded-full bg-primary/20" />
@@ -567,7 +595,7 @@ function TodayPage() {
           onClick={() => setShowCheckIn(true)}
           className={`w-full text-left rounded-3xl p-6 relative overflow-hidden transition ring-1 ${
             checkInDone
-              ? "bg-card ring-black/5 hover:ring-primary/20"
+              ? "bg-card ring-foreground/5 hover:ring-primary/20"
               : "bg-primary text-primary-foreground ring-primary hover:opacity-95"
           }`}
         >
@@ -598,7 +626,7 @@ function TodayPage() {
 
       {/* Weekly photo */}
       <section className="px-6 animate-entrance">
-        <div className="bg-card rounded-3xl p-6 ring-1 ring-black/5">
+        <div className="bg-card rounded-3xl p-6 ring-1 ring-foreground/5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -611,7 +639,7 @@ function TodayPage() {
           {photoUrl ? (
             <div className="relative rounded-2xl overflow-hidden aspect-[4/5] bg-muted mb-4">
               <img src={photoUrl} alt={`Week ${week} progress`} className="w-full h-full object-cover" />
-              <span className="absolute top-3 left-3 rounded-full bg-black/50 text-white font-mono text-[10px] uppercase tracking-widest px-2 py-1">
+              <span className="absolute top-3 left-3 rounded-full bg-foreground/50 text-primary-foreground font-mono text-[10px] uppercase tracking-widest px-2 py-1">
                 Week {week}
               </span>
             </div>
@@ -710,7 +738,7 @@ function HabitRow({
   return (
     <div
       className={`bg-card rounded-2xl p-4 ring-1 ${
-        done ? "ring-black/5" : "ring-primary/30"
+        done ? "ring-foreground/5" : "ring-primary/30"
       } flex items-center gap-4 animate-entrance`}
     >
       <button
@@ -740,7 +768,7 @@ function HabitRow({
 
 function ModalShell({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-foreground/40 p-0 sm:p-6">
       <div className="w-full max-w-md bg-background rounded-t-3xl sm:rounded-3xl p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h3 className="font-display text-xl italic">{title}</h3>
@@ -771,7 +799,7 @@ function MoveModal({
             key={t}
             onClick={() => setType(t)}
             className={`rounded-xl px-3 py-2 text-xs font-semibold ring-1 ${
-              type === t ? "bg-primary text-primary-foreground ring-primary" : "bg-card ring-black/5"
+              type === t ? "bg-primary text-primary-foreground ring-primary" : "bg-card ring-foreground/5"
             }`}
           >
             {t}
@@ -786,7 +814,7 @@ function MoveModal({
         min={1}
         value={minutes}
         onChange={(e) => setMinutes(Number(e.target.value))}
-        className="w-full rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-black/5"
+        className="w-full rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-foreground/5"
       />
       <button
         onClick={() => onSave({ move_type: type, move_minutes: minutes })}
@@ -816,7 +844,7 @@ function MindsetModal({
             key={t}
             onClick={() => setType(t)}
             className={`rounded-xl px-3 py-2 text-sm font-semibold ring-1 ${
-              type === t ? "bg-primary text-primary-foreground ring-primary" : "bg-card ring-black/5"
+              type === t ? "bg-primary text-primary-foreground ring-primary" : "bg-card ring-foreground/5"
             }`}
           >
             {t}
@@ -902,7 +930,7 @@ function CheckInModal({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="One thing you noticed today…"
-            className="w-full rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-black/5"
+            className="w-full rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-foreground/5"
           />
         </div>
       </div>

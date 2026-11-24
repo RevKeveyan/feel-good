@@ -1,0 +1,9 @@
+- [x] Restore exact brand red on Clinic buttons without disabled-state colour fading.
+- [x] Add personalised pod PDF support to the client Clinic page and admin uploads.
+- [x] Verify Clinic display and exact red button colours in the public preview; confirm owner-only document and file read policies.
+- [ ] Verify uploading and opening a personalised pod PDF while signed in. Blocked: no app account matches the requesting user for a managed test session.
+- [x] Add The Feel Good Society App chooser after sign-in.
+- [x] Enforce separate Challenge and Clinic Clients approvals for all accounts.
+- [x] Add administrator approval controls and verify access rules.
+- [ ] Verify signed-in approval flow. Blocked: no app account matches the requesting user.
+- [ ] Assign the approval administrator. Blocked: no administrator exists and the user must identify their app account.

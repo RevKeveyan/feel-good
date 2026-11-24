@@ -1,6 +1,4 @@
-import type { DailyQuote } from "@feelgood/shared";
-
-export type { DailyQuote } from "@feelgood/shared";
+export type DailyQuote = { text: string; author?: string };
 
 export const DAILY_QUOTES: DailyQuote[] = [
   { text: "You do not rise to the level of your goals. You fall to the level of your systems.", author: "James Clear" },

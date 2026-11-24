@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
@@ -15,14 +15,25 @@ import {
   type WheelScores,
 } from "@/lib/onboarding";
 import { RadarChart } from "@/components/RadarChart";
+import { requireAreaApproval } from "@/lib/area-access.guard";
 
 const searchSchema = z.object({
   step: fallback(z.string(), "welcome").default("welcome"),
 });
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
+  beforeLoad: () => requireAreaApproval("challenge"),
   validateSearch: zodValidator(searchSchema),
-  head: () => ({ meta: [{ title: "Begin your challenge" }] }),
+  head: () => ({
+    meta: [
+      { title: "Begin Your Challenge, The Feel Good Society" },
+      { name: "description", content: "Set your goals, complete your Transformation Wheel, and prepare for your 55-day journey." },
+      { property: "og:title", content: "Begin Your Challenge, The Feel Good Society" },
+      { property: "og:description", content: "Set your goals, complete your Transformation Wheel, and prepare for your 55-day journey." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: OnboardingPage,
 });
 
@@ -180,8 +191,8 @@ function OnboardingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Loading…</p>
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-card to-background">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/70">Loading…</p>
       </div>
     );
   }
@@ -190,20 +201,20 @@ function OnboardingPage() {
   const visibleIndex = Math.min(stepIndex, progressCount - 1);
 
   const STEP_TONES: Record<OnboardingStep, { bg: string; glowA: string; glowB: string }> = {
-    welcome:        { bg: "bg-[color:var(--card)]",                 glowA: "bg-accent/45",                     glowB: "bg-[color:var(--destructive)]/40" },
-    why:            { bg: "bg-[color:var(--destructive)]/15",       glowA: "bg-[color:var(--destructive)]/45", glowB: "bg-secondary/70" },
-    goals:          { bg: "bg-accent/12",                            glowA: "bg-accent/50",                     glowB: "bg-[color:var(--destructive)]/40" },
-    commitment:     { bg: "bg-secondary/50",                        glowA: "bg-[color:var(--destructive)]/45", glowB: "bg-accent/45" },
-    wheel:          { bg: "bg-[color:var(--card)]",                 glowA: "bg-accent/50",                     glowB: "bg-[color:var(--destructive)]/45" },
-    "why-statement":{ bg: "bg-[color:var(--destructive)]/12",       glowA: "bg-secondary/70",                  glowB: "bg-accent/45" },
-    vision:         { bg: "bg-secondary/40",                        glowA: "bg-[color:var(--destructive)]/45", glowB: "bg-accent/40" },
-    letter:         { bg: "bg-[color:var(--card)]",                 glowA: "bg-secondary/70",                  glowB: "bg-[color:var(--destructive)]/40" },
-    done:           { bg: "bg-accent/15",                            glowA: "bg-accent/55",                     glowB: "bg-[color:var(--destructive)]/55" },
+    welcome:         { bg: "from-card to-background",                               glowA: "bg-accent/40",                  glowB: "bg-primary/35" },
+    why:             { bg: "from-primary/20 via-card to-secondary/30",            glowA: "bg-primary/40",               glowB: "bg-secondary/60" },
+    goals:           { bg: "from-secondary/15 via-card to-secondary/20",           glowA: "bg-secondary/40",               glowB: "bg-primary/35" },
+    commitment:      { bg: "from-secondary/30 via-card to-secondary/25",           glowA: "bg-primary/40",               glowB: "bg-accent/45" },
+    wheel:           { bg: "from-card via-background to-secondary/15",              glowA: "bg-secondary/40",               glowB: "bg-primary/35" },
+    "why-statement": { bg: "from-primary/15 via-card to-secondary/25",           glowA: "bg-secondary/60",               glowB: "bg-accent/40" },
+    vision:          { bg: "from-secondary/25 via-card to-primary/20",           glowA: "bg-primary/40",               glowB: "bg-secondary/35" },
+    letter:          { bg: "from-card via-background to-secondary/20",              glowA: "bg-secondary/60",               glowB: "bg-primary/35" },
+    done:            { bg: "from-secondary/20 via-card to-primary/25",           glowA: "bg-accent/50",                  glowB: "bg-primary/45" },
   };
   const tone = STEP_TONES[step];
 
   return (
-    <div className={`relative min-h-screen text-foreground overflow-hidden transition-colors duration-500 ${tone.bg}`}>
+    <div className={`relative min-h-screen text-foreground overflow-hidden transition-all duration-700 bg-linear-to-br ${tone.bg}`}>
       <div className={`pointer-events-none absolute -top-40 -left-24 size-[28rem] rounded-full blur-3xl ${tone.glowA}`} />
       <div className={`pointer-events-none absolute -bottom-40 -right-24 size-[30rem] rounded-full blur-3xl ${tone.glowB}`} />
       <div className="relative max-w-xl mx-auto px-6 pt-10 pb-24">
@@ -217,7 +228,7 @@ function OnboardingPage() {
                 key={i}
                 className={`h-1.5 flex-1 rounded-full ${
                   i <= visibleIndex
-                    ? "bg-gradient-to-r from-[color:var(--destructive)] via-accent to-secondary"
+                    ? "bg-linear-to-r from-primary via-secondary to-secondary"
                     : "bg-foreground/10"
                 }`}
               />
@@ -309,21 +320,20 @@ function NavRow({ onBack, onNext, nextLabel = "Continue", nextDisabled }: { onBa
   return (
     <div className="mt-10 flex items-center justify-between gap-4">
       {onBack ? (
-        <button onClick={onBack} className="inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm text-foreground/70 hover:bg-black/5 transition">
+        <button onClick={onBack} className="inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm text-foreground/70 hover:bg-foreground/5 transition">
           <ArrowLeft className="size-4" /> Back
         </button>
       ) : <span />}
       <button
         onClick={onNext}
         disabled={nextDisabled}
-        className="group inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-7 py-3.5 text-sm font-semibold shadow-lg shadow-primary/25 hover:shadow-xl transition disabled:opacity-40 disabled:shadow-none active:scale-[0.98]"
+        className="group inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-7 py-3.5 text-sm font-semibold shadow-lg shadow-primary/20 hover:shadow-xl hover:bg-primary/90 transition disabled:opacity-40 disabled:shadow-none active:scale-[0.98]"
       >
         {nextLabel} <ArrowRight className="size-4 group-hover:translate-x-0.5 transition-transform" />
       </button>
     </div>
   );
 }
-
 
 function StepWelcome({ onNext }: { onNext: () => void }) {
   return (
@@ -332,7 +342,7 @@ function StepWelcome({ onNext }: { onNext: () => void }) {
       title="This isn't another challenge."
       subtitle="It's your commitment to becoming the healthiest version of yourself. Over the next 55 days, we'll build habits you'll keep for life, one day at a time."
     >
-      <div className="rounded-3xl p-6 ring-1 ring-black/5 bg-gradient-to-br from-[color:var(--lime)]/25 via-card to-[color:var(--destructive)]/25">
+      <div className="rounded-3xl p-6 ring-1 ring-foreground/5 bg-linear-to-br from-secondary/30 via-card to-primary/30">
         <p className="text-sm text-foreground/80 leading-relaxed">
           Before Day 1, we'll spend a few minutes on the emotional foundation, why you're
           here, what you want to feel, and what success actually looks like for you. This
@@ -362,8 +372,8 @@ function PromptField({ label, value, onChange }: { label: string; value: string;
   const filled = value.trim().length > 0;
   return (
     <div
-      className={`group rounded-2xl p-4 ring-1 transition bg-gradient-to-br from-[color:var(--card)] via-background to-secondary/40 focus-within:from-[color:var(--lime)]/20 focus-within:to-[color:var(--destructive)]/15 ${
-        filled ? "ring-[color:var(--lime)]/50" : "ring-black/5 hover:ring-[color:var(--destructive)]/30"
+      className={`group rounded-2xl p-4 ring-1 transition bg-linear-to-br from-card via-background/60 to-secondary/40 focus-within:from-secondary/20 focus-within:via-card focus-within:to-primary/20 ${
+        filled ? "ring-primary/60" : "ring-foreground/5 hover:ring-primary/30"
       }`}
     >
       <label className="block font-mono text-[10px] uppercase tracking-widest text-foreground/60 mb-2">{label}</label>
@@ -414,14 +424,14 @@ function StepGoals({ selected, onChange, onBack, onNext }: { selected: string[];
               onClick={() => toggle(g)}
               className={`flex items-center justify-between gap-2 rounded-2xl p-4 text-left text-sm font-medium ring-1 transition active:scale-[0.98] ${
                 on
-                  ? "bg-gradient-to-br from-[color:var(--lime)]/80 via-[#F8EFEE] to-[color:var(--destructive)]/70 text-foreground ring-[color:var(--lime)]/60 shadow-md"
-                  : "bg-card text-foreground ring-black/10 hover:ring-black/20"
+                  ? "bg-primary text-primary-foreground ring-primary shadow-md"
+                  : "bg-card text-foreground ring-foreground/10 hover:ring-foreground/20"
               }`}
             >
               <span>{g}</span>
               <span
                 className={`flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] transition ${
-                  on ? "bg-white/60 text-foreground" : "bg-muted ring-1 ring-black/10 text-transparent"
+                  on ? "bg-card text-primary" : "bg-background ring-1 ring-foreground/10 text-transparent"
                 }`}
               >
                 ✓
@@ -431,7 +441,7 @@ function StepGoals({ selected, onChange, onBack, onNext }: { selected: string[];
         })}
       </div>
       {hasOther && (
-        <div className="mt-4">
+        <div className="mt-4 rounded-2xl p-4 bg-linear-to-br from-card to-secondary/30 ring-1 ring-foreground/5">
           <label className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
             Tell us what "Other" means to you
           </label>
@@ -440,7 +450,7 @@ function StepGoals({ selected, onChange, onBack, onNext }: { selected: string[];
             value={otherText}
             onChange={(e) => setOtherText(e.target.value)}
             placeholder="In a few words…"
-            className="w-full rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-black/5 focus:ring-primary/30 focus:outline-none"
+            className="w-full rounded-2xl bg-card/60 px-4 py-3 text-sm ring-1 ring-foreground/5 focus:ring-primary/40 focus:outline-none"
           />
         </div>
       )}
@@ -454,8 +464,8 @@ function StepCommitment({ name, signedAt, onSign, onBack, onNext }: { name: stri
   const signed = !!signedAt && !!name;
   return (
     <StepShell eyebrow="Step 3 of 7" title="Your commitment.">
-      <div className="rounded-3xl p-8 ring-1 ring-black/5 bg-gradient-to-br from-accent/30 via-card to-[color:var(--destructive)]/25 relative overflow-hidden">
-        <div className="pointer-events-none absolute -top-16 -right-16 size-40 rounded-full bg-accent/40 blur-2xl" />
+      <div className="rounded-3xl p-8 ring-1 ring-foreground/5 bg-linear-to-br from-secondary/30 via-card to-primary/25 relative overflow-hidden">
+        <div className="pointer-events-none absolute -top-16 -right-16 size-40 rounded-full bg-secondary/40 blur-2xl" />
         <p className="font-display italic text-2xl leading-snug mb-6">
           "I commit to showing up for myself for the next 55 days."
         </p>
@@ -466,13 +476,13 @@ function StepCommitment({ name, signedAt, onSign, onBack, onNext }: { name: stri
           type="text"
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
-          className="w-full rounded-2xl bg-background border-b-2 border-primary/30 focus:border-primary px-4 py-3 text-lg font-display italic outline-none"
+          className="w-full rounded-2xl bg-card/70 border-b-2 border-primary/40 focus:border-primary px-4 py-3 text-lg font-display italic outline-none"
           placeholder="Your name"
         />
         <button
           onClick={() => typed.trim() && onSign(typed.trim())}
           disabled={!typed.trim() || signed}
-          className="mt-6 w-full rounded-full bg-primary text-primary-foreground py-3 text-sm font-semibold disabled:opacity-60"
+          className="mt-6 w-full rounded-full bg-primary text-primary-foreground py-3 text-sm font-semibold disabled:opacity-60 hover:bg-primary/90 transition"
         >
           {signed ? `Signed, ${name}` : "I agree"}
         </button>
@@ -490,8 +500,8 @@ function StepWheel({ wheel, onChange, onBack, onNext }: { wheel: WheelScores; on
       title="Your Transformation Wheel."
       subtitle="Rate where you are today across nine areas. You'll rate again on Day 55, this is your before."
     >
-      <div className="rounded-3xl p-6 ring-1 ring-black/5 bg-gradient-to-br from-[#F8EFEE] via-card to-[color:var(--lime)]/20 relative overflow-hidden">
-        <div className="pointer-events-none absolute -top-16 -right-16 size-56 rounded-full bg-[color:var(--destructive)]/25 blur-3xl" />
+      <div className="rounded-3xl p-6 ring-1 ring-foreground/5 bg-linear-to-br from-card via-background to-secondary/20 relative overflow-hidden">
+        <div className="pointer-events-none absolute -top-16 -right-16 size-56 rounded-full bg-primary/25 blur-3xl" />
         <RadarChart axes={[...WHEEL_DIMENSIONS]} values={wheel} />
       </div>
       <div className="mt-6 space-y-4">
@@ -510,16 +520,9 @@ function StepWheel({ wheel, onChange, onBack, onNext }: { wheel: WheelScores; on
 }
 
 function WheelScale({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
-  const colorFor = (n: number) => {
-    // 1-3 rose, 4-6 blush, 7-8 mustard, 9-10 lime
-    if (n <= 3) return "#DD9B9B";
-    if (n <= 6) return "#F2BDC2";
-    if (n <= 8) return "#E1C340";
-    return "#CCDA18";
-  };
   return (
-    <div>
-      <div className="flex justify-between mb-2">
+    <div className="rounded-2xl p-4 bg-linear-to-br from-card to-background/60 ring-1 ring-foreground/5">
+      <div className="flex justify-between mb-3">
         <span className="text-sm font-semibold">{label}</span>
         <span className="font-mono text-xs text-muted-foreground">{value}/10</span>
       </div>
@@ -531,21 +534,19 @@ function WheelScale({ label, value, onChange }: { label: string; value: number; 
             <button
               key={n}
               onClick={() => onChange(n)}
-              className="h-7 rounded-md transition"
-              style={{
-                backgroundColor: active ? colorFor(n) : undefined,
-              }}
+              className={`h-8 rounded-md transition ${
+                active
+                  ? "bg-linear-to-b from-secondary via-secondary to-primary shadow-sm"
+                  : "bg-background hover:bg-primary/20"
+              }`}
               aria-label={`${label} ${n}`}
-            >
-              {!active && <span className="block h-full w-full rounded-md bg-muted" />}
-            </button>
+            />
           );
         })}
       </div>
     </div>
   );
 }
-
 
 function StepWhyStatement({ value, onChange, onBack, onNext }: { value: string; onChange: (v: string) => void; onBack: () => void; onNext: () => void }) {
   return (
@@ -559,7 +560,7 @@ function StepWhyStatement({ value, onChange, onBack, onNext }: { value: string; 
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="This matters to me because…"
-        className="w-full rounded-3xl p-5 text-base leading-relaxed ring-1 ring-black/5 focus:ring-[color:var(--destructive)]/50 focus:outline-none bg-gradient-to-br from-secondary/70 via-card to-accent/25"
+        className="w-full rounded-3xl p-5 text-base leading-relaxed ring-1 ring-foreground/5 focus:ring-primary/50 focus:outline-none bg-linear-to-br from-secondary/50 via-card to-secondary/30"
       />
       <NavRow onBack={onBack} onNext={onNext} nextDisabled={value.trim().length < 10} />
     </StepShell>
@@ -599,6 +600,13 @@ function StepVision({ uid, items, reload, onBack, onNext }: { uid: string; items
     await reload();
   }
 
+  const frameGradients = [
+    "bg-linear-to-br from-secondary/40 to-secondary/30",
+    "bg-linear-to-br from-primary/40 to-secondary/30",
+    "bg-linear-to-br from-secondary/40 to-secondary/20",
+    "bg-linear-to-br from-secondary/40 to-primary/20",
+  ];
+
   return (
     <StepShell
       eyebrow="Step 6 of 7"
@@ -607,13 +615,12 @@ function StepVision({ uid, items, reload, onBack, onNext }: { uid: string; items
     >
       <div className="grid grid-cols-2 gap-3">
         {items.map((item, i) => {
-          const frames = ["ring-[color:var(--lime)]/60", "ring-[color:var(--destructive)]/60", "ring-[color:var(--accent)]/70", "ring-[#F2BDC2]"];
           return (
-            <div key={item.id} className={`relative rounded-2xl overflow-hidden aspect-square bg-muted group ring-2 ${frames[i % frames.length]}`}>
+            <div key={item.id} className={`relative rounded-2xl overflow-hidden aspect-square ${frameGradients[i % frameGradients.length]} ring-2 ring-white/60`}>
               {item.url && <img src={item.url} alt="vision" className="w-full h-full object-cover" />}
               <button
                 onClick={() => remove(item)}
-                className="absolute top-2 right-2 size-8 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                className="absolute top-2 right-2 size-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
                 aria-label="Remove"
               >
                 <Trash2 className="size-4" />
@@ -625,7 +632,7 @@ function StepVision({ uid, items, reload, onBack, onNext }: { uid: string; items
           <button
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
-            className="rounded-2xl border-2 border-dashed border-[color:var(--destructive)]/50 aspect-square flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-[color:var(--lime)]/15 via-card to-[color:var(--destructive)]/15 hover:from-[color:var(--lime)]/30 hover:to-[color:var(--destructive)]/30 transition disabled:opacity-60"
+            className="rounded-2xl border-2 border-dashed border-primary/50 aspect-square flex flex-col items-center justify-center gap-2 bg-linear-to-br from-secondary/20 via-card to-primary/20 hover:from-secondary/35 hover:via-card hover:to-primary/35 transition disabled:opacity-60"
           >
             <ImagePlus className="size-8 text-foreground/70" />
             <span className="text-xs text-muted-foreground">{uploading ? "Uploading…" : "Add image"}</span>
@@ -663,7 +670,7 @@ function StepLetter({ value, onChange, onBack, onNext }: { value: string; onChan
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Dear future me,"
-        className="w-full rounded-3xl bg-card p-5 text-base leading-relaxed font-display italic ring-1 ring-black/5 focus:ring-primary/30 focus:outline-none"
+        className="w-full rounded-3xl p-5 text-base leading-relaxed font-display italic ring-1 ring-foreground/5 focus:ring-primary/40 focus:outline-none bg-linear-to-br from-card via-background to-secondary/40"
       />
       <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
         <Lock className="size-3.5" /> Sealed until Day 55.
@@ -676,8 +683,8 @@ function StepLetter({ value, onChange, onBack, onNext }: { value: string; onChan
 function StepDone({ onComplete }: { onComplete: () => void }) {
   return (
     <StepShell eyebrow="You're ready" title="The foundation is set.">
-      <div className="rounded-3xl p-8 relative overflow-hidden bg-gradient-to-br from-accent via-[color:var(--destructive)] to-secondary text-foreground">
-        <div className="pointer-events-none absolute -top-20 -right-20 size-56 rounded-full bg-white/30 blur-3xl" />
+      <div className="rounded-3xl p-8 relative overflow-hidden bg-linear-to-br from-secondary via-primary to-secondary text-foreground">
+        <div className="pointer-events-none absolute -top-20 -right-20 size-56 rounded-full bg-card/30 blur-3xl" />
         <Sparkles className="size-6 mb-4" />
         <p className="font-display italic text-2xl leading-snug mb-4">
           Tomorrow is Day 1. Today, you chose yourself.
@@ -689,7 +696,7 @@ function StepDone({ onComplete }: { onComplete: () => void }) {
       </div>
       <button
         onClick={onComplete}
-        className="mt-8 w-full rounded-full bg-foreground text-background py-4 text-sm font-semibold"
+        className="mt-8 w-full rounded-full bg-primary text-primary-foreground py-4 text-sm font-semibold hover:bg-primary/90 transition"
       >
         Enter the challenge
       </button>

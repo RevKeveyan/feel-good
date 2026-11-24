@@ -3,9 +3,20 @@ import { useEffect, useState } from "react";
 import { Lock, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CHALLENGE_LENGTH, currentDay, type Profile } from "@/lib/challenge";
+import { requireAreaApproval } from "@/lib/area-access.guard";
 
 export const Route = createFileRoute("/_authenticated/complete")({
-  head: () => ({ meta: [{ title: "Challenge Complete, The Feel Good Challenge" }] }),
+  beforeLoad: () => requireAreaApproval("challenge"),
+  head: () => ({
+    meta: [
+      { title: "Challenge Complete, The Feel Good Society" },
+      { name: "description", content: "Reveal and share your transformation after completing The Feel Good Society 55-Day Challenge." },
+      { property: "og:title", content: "Challenge Complete, The Feel Good Society" },
+      { property: "og:description", content: "Reveal and share your transformation after completing The Feel Good Society 55-Day Challenge." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: CompletePage,
 });
 
@@ -40,7 +51,7 @@ function CompletePage() {
     const daysLeft = CHALLENGE_LENGTH - day;
     return (
       <div className="min-h-screen bg-background text-foreground max-w-md mx-auto p-6 pt-16">
-        <div className="rounded-3xl bg-card p-8 ring-1 ring-black/5 text-center">
+        <div className="rounded-3xl bg-card p-8 ring-1 ring-foreground/5 text-center">
           <div className="size-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
             <Lock className="size-6 text-primary" />
           </div>
@@ -71,7 +82,7 @@ function CompletePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground max-w-md mx-auto p-6 pt-16">
-      <div className="rounded-3xl bg-gradient-to-br from-primary/10 via-card to-accent/10 p-8 ring-1 ring-black/5 text-center">
+      <div className="rounded-3xl bg-linear-to-br from-primary/10 via-card to-accent/10 p-8 ring-1 ring-foreground/5 text-center">
         <p className="font-mono text-[10px] uppercase tracking-widest text-primary mb-2">
           Day {CHALLENGE_LENGTH} · Unlocked
         </p>

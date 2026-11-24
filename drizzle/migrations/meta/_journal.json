@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1793140548871,
+      "tag": "0000_client_documents",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793141898578,
+      "tag": "0001_clinic_personalised_pod_documents",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793219083533,
+      "tag": "0002_separate_app_area_approvals",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Apple,
   Pill,
@@ -15,6 +16,8 @@ import {
   Users,
 } from "lucide-react";
 import suzziAsset from "@/assets/suzzi.png.asset.json";
+import { CONTACT_EMAIL, WHATSAPP_DISPLAY, WHATSAPP_LINK } from "@/lib/contact";
+import { WhatsAppGlyph } from "@/components/WhatsAppContact";
 
 
 export const Route = createFileRoute("/")({
@@ -62,6 +65,14 @@ function Landing() {
 }
 
 function Nav() {
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (active) setSignedIn(Boolean(data.session));
+    });
+    return () => { active = false; };
+  }, []);
   return (
     <header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
@@ -72,10 +83,10 @@ function Nav() {
           </span>
         </div>
         <Link
-          to="/auth"
+          to={signedIn ? "/app" : "/auth"}
           className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:opacity-90"
         >
-          Sign in
+          {signedIn ? "Open app" : "Sign in"}
         </Link>
       </div>
     </header>
@@ -107,13 +118,13 @@ function Hero() {
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           <Link
             to="/auth"
-            className="rounded-full bg-[color:var(--destructive)] px-8 py-4 text-sm font-semibold uppercase tracking-widest text-white shadow-lg shadow-[color:var(--destructive)]/30 transition hover:brightness-95"
+            className="rounded-full bg-[color:var(--destructive)] px-8 py-4 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-lg shadow-[color:var(--destructive)]/30 transition hover:brightness-95"
           >
             Secure Your Spot
           </Link>
           <a
             href="#the-five"
-            className="rounded-full bg-accent px-7 py-3.5 text-sm font-semibold uppercase tracking-widest text-foreground transition hover:brightness-95"
+            className="rounded-full bg-foreground px-7 py-3.5 text-sm font-semibold uppercase tracking-widest text-background transition hover:opacity-80"
           >
             Learn The Feel Good Five
           </a>
@@ -136,7 +147,7 @@ function Hero() {
           {["55 Days", "5 Daily Habits", "$5,000 Prize", "Personalised Support"].map((t) => (
             <span
               key={t}
-              className="rounded-full bg-card px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-foreground ring-1 ring-black/5"
+              className="rounded-full bg-card px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-foreground ring-1 ring-foreground/5"
             >
               {t}
             </span>
@@ -312,14 +323,14 @@ function BeforeAfter() {
           </h2>
         </div>
 
-        <div className="relative rounded-[2.5rem] bg-card p-2 ring-1 ring-black/5">
-          <div className="overflow-hidden rounded-[2rem] bg-gradient-to-b from-[color:var(--secondary)]/20 via-card to-card p-8 md:p-12 lg:p-14">
+        <div className="relative rounded-[2.5rem] bg-card p-2 ring-1 ring-foreground/5">
+          <div className="overflow-hidden rounded-[2rem] bg-linear-to-b from-[color:var(--secondary)]/20 via-card to-card p-8 md:p-12 lg:p-14">
             {/* Header row */}
-            <div className="mb-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4 border-b border-black/5 pb-6 md:mb-12">
+            <div className="mb-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4 border-b border-foreground/5 pb-6 md:mb-12">
               <p className="text-center font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/40">
                 The Current State
               </p>
-              <div className="flex size-12 items-center justify-center rounded-full bg-background shadow-sm ring-1 ring-black/5 md:size-14">
+              <div className="flex size-12 items-center justify-center rounded-full bg-background shadow-sm ring-1 ring-foreground/5 md:size-14">
                 <ArrowRightIcon className="size-4 text-accent md:size-5" />
               </div>
               <p className="text-center font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/40">
@@ -329,7 +340,7 @@ function BeforeAfter() {
 
             {/* Word pairs */}
             <div className="space-y-4 md:space-y-5">
-              {pairs.map((pair) => (
+              {pairs.map((pair, i) => (
                 <div
                   key={pair.before}
                   className="group grid grid-cols-[1fr_auto_1fr] items-center gap-3 md:gap-6"
@@ -337,7 +348,7 @@ function BeforeAfter() {
                   <span className="text-right text-lg font-medium text-foreground/50 md:text-2xl">
                     {pair.before}
                   </span>
-                  <span className="flex size-6 items-center justify-center rounded-full bg-background ring-1 ring-black/5 md:size-7">
+                  <span className="flex size-6 items-center justify-center rounded-full bg-background ring-1 ring-foreground/5 md:size-7">
                     <span className="block size-1.5 rounded-full bg-accent/60 transition group-hover:bg-accent" />
                   </span>
                   <span className="text-left text-lg font-medium text-foreground md:text-2xl">
@@ -349,7 +360,7 @@ function BeforeAfter() {
 
             {/* Bottom badge */}
             <div className="mt-10 flex justify-center md:mt-12">
-              <div className="inline-flex items-center gap-3 rounded-full bg-background px-5 py-2.5 shadow-sm ring-1 ring-black/5">
+              <div className="inline-flex items-center gap-3 rounded-full bg-background px-5 py-2.5 shadow-sm ring-1 ring-foreground/5">
                 <span className="font-display text-2xl text-foreground">55</span>
                 <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                   Days
@@ -368,7 +379,61 @@ function BeforeAfter() {
 }
 
 
+function Column({
+  label,
+  items,
+  tone,
+}: {
+  label: string;
+  items: string[];
+  tone: "muted" | "accent";
+}) {
+  const isAccent = tone === "accent";
+  return (
+    <div
+      className={`rounded-3xl p-8 ring-1 ${
+        isAccent
+          ? "bg-[color:var(--secondary)] text-foreground ring-foreground/5"
+          : "bg-card ring-foreground/5"
+      }`}
+    >
+      <p
+        className={`font-mono text-[10px] uppercase tracking-[0.3em] ${
+          isAccent ? "text-foreground/60" : "text-muted-foreground"
+        }`}
+      >
+        {label}
+      </p>
+      <ul className="mt-6 space-y-3">
+        {items.map((it) => (
+          <li key={it} className="flex items-center gap-3 text-base">
+            <span
+              className={`size-1.5 rounded-full ${
+                isAccent ? "bg-accent" : "bg-muted-foreground/40"
+              }`}
+            />
+            {it}
+          </li>
+        ))}
+      </ul>
 
+    </div>
+  );
+}
+
+function ArrowRight() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M5 12h14M13 6l6 6-6 6"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 function HowItWorks() {
   const steps = [
@@ -384,7 +449,7 @@ function HowItWorks() {
     <Section tone="blush" glow="blush" eyebrow="How It Works" title="Three Steps. Fifty-Five Days.">
       <div className="grid gap-5 md:grid-cols-3">
         {steps.map((s) => (
-          <div key={s.n} className="rounded-3xl bg-card p-8 ring-1 ring-black/5">
+          <div key={s.n} className="rounded-3xl bg-card p-8 ring-1 ring-foreground/5">
             <span className="font-mono text-xs text-accent">{s.n}</span>
             <h3 className="mt-4 font-display text-3xl italic">{s.t}</h3>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
@@ -416,7 +481,7 @@ function FeelGoodFive() {
         {five.map(({ t, d, Icon }) => (
           <div
             key={t}
-            className="rounded-3xl bg-card p-6 ring-1 ring-black/5 transition hover:-translate-y-1 hover:shadow-lg"
+            className="rounded-3xl bg-card p-6 ring-1 ring-foreground/5 transition hover:-translate-y-1 hover:shadow-lg"
           >
             <div className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Icon size={20} strokeWidth={1.5} />
@@ -429,7 +494,7 @@ function FeelGoodFive() {
         ))}
       </div>
 
-      <div className="relative mt-10 overflow-hidden rounded-3xl p-10 ring-1 ring-black/5 md:p-14 bg-gradient-to-br from-[color:var(--lime)]/40 via-card to-[color:var(--destructive)]/35">
+      <div className="relative mt-10 overflow-hidden rounded-3xl p-10 ring-1 ring-foreground/5 md:p-14 bg-linear-to-br from-[color:var(--lime)]/40 via-card to-[color:var(--destructive)]/35">
         <div className="pointer-events-none absolute -top-24 -right-24 size-72 rounded-full bg-accent/40 blur-3xl" />
         <div className="relative">
           <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/60">
@@ -731,7 +796,7 @@ function TransformationJourney() {
       {/* Selected milestone panel */}
       <div
         key={milestone.key}
-        className="mt-10 overflow-hidden rounded-3xl bg-card ring-1 ring-black/5 animate-entrance"
+        className="mt-10 overflow-hidden rounded-3xl bg-card ring-1 ring-foreground/5 animate-entrance"
       >
         <div className="grid gap-0 md:grid-cols-[1.1fr_1fr]">
           <div className="border-b border-border p-8 md:border-b-0 md:border-r md:p-12">
@@ -814,7 +879,7 @@ function TransformationJourney() {
               </div>
             )}
 
-            <div className="mt-8 rounded-2xl p-5 bg-gradient-to-br from-secondary/70 via-card to-[color:var(--lime)]/30 ring-1 ring-black/5">
+            <div className="mt-8 rounded-2xl p-5 bg-linear-to-br from-secondary/70 via-card to-[color:var(--lime)]/30 ring-1 ring-foreground/5">
               <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/60">
                 Motivation
               </p>
@@ -850,7 +915,7 @@ function TransformationJourney() {
       </div>
 
       {/* Live progress */}
-      <div className="mt-10 rounded-3xl bg-secondary/50 p-8 ring-1 ring-black/5">
+      <div className="mt-10 rounded-3xl bg-secondary/50 p-8 ring-1 ring-foreground/5">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
@@ -866,7 +931,7 @@ function TransformationJourney() {
         </div>
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[color:var(--destructive)] via-[color:var(--lime)] to-accent transition-all duration-700"
+            className="h-full rounded-full bg-linear-to-r from-[color:var(--destructive)] via-[color:var(--lime)] to-accent transition-all duration-700"
             style={{ width: `${LIVE_PROGRESS.completion}%` }}
           />
         </div>
@@ -878,7 +943,7 @@ function TransformationJourney() {
             ["Completion", `${LIVE_PROGRESS.completion}%`],
             ["Badges Earned", LIVE_PROGRESS.badgesEarned],
           ].map(([l, v]) => (
-            <div key={l as string} className="rounded-2xl bg-card p-4 ring-1 ring-black/5">
+            <div key={l as string} className="rounded-2xl bg-card p-4 ring-1 ring-foreground/5">
               <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
                 {l}
               </p>
@@ -901,7 +966,7 @@ function DashboardPreview() {
     >
 
       <div className="mx-auto flex max-w-md justify-center">
-        <div className="relative rounded-[3rem] bg-gradient-to-br from-secondary via-[color:var(--card)] to-[color:var(--lime)]/25 p-3 ring-1 ring-black/5 shadow-2xl shadow-[color:var(--destructive)]/20">
+        <div className="relative rounded-[3rem] bg-linear-to-br from-secondary via-[color:var(--card)] to-[color:var(--lime)]/25 p-3 ring-1 ring-foreground/5 shadow-2xl shadow-[color:var(--destructive)]/20">
           <div className="w-[300px] rounded-[2.4rem] bg-[color:var(--card)] p-5">
             {/* Header */}
             <div className="flex items-start justify-between">
@@ -919,7 +984,7 @@ function DashboardPreview() {
             </div>
 
             {/* Reminder card */}
-            <div className="mt-4 relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-[color:var(--lime)]/25 via-background to-[color:var(--destructive)]/25 ring-1 ring-black/5">
+            <div className="mt-4 relative overflow-hidden rounded-2xl p-4 bg-linear-to-br from-[color:var(--lime)]/25 via-background to-[color:var(--destructive)]/25 ring-1 ring-foreground/5">
               <p className="font-mono text-[9px] uppercase tracking-widest text-foreground/60">
                 Today's reminder
               </p>
@@ -930,11 +995,11 @@ function DashboardPreview() {
 
             {/* Streak + Journey */}
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <div className="rounded-2xl p-3 bg-gradient-to-br from-[color:var(--destructive)]/25 via-secondary/60 to-background ring-1 ring-black/5">
+              <div className="rounded-2xl p-3 bg-linear-to-br from-[color:var(--destructive)]/25 via-secondary/60 to-background ring-1 ring-foreground/5">
                 <p className="font-mono text-[8px] uppercase tracking-widest text-foreground/60">🔥 Streak</p>
                 <p className="mt-1 font-display italic text-2xl leading-none">7<span className="text-xs not-italic text-foreground/60"> days</span></p>
               </div>
-              <div className="rounded-2xl p-3 bg-gradient-to-br from-[color:var(--lime)]/30 via-background to-accent/20 ring-1 ring-black/5">
+              <div className="rounded-2xl p-3 bg-linear-to-br from-[color:var(--lime)]/30 via-background to-accent/20 ring-1 ring-foreground/5">
                 <p className="font-mono text-[8px] uppercase tracking-widest text-foreground/60">Journey</p>
                 <p className="mt-1 font-display italic text-2xl leading-none">18<span className="text-xs not-italic text-foreground/60">%</span></p>
                 <div className="mt-2 h-1 rounded-full bg-foreground/10">
@@ -944,15 +1009,14 @@ function DashboardPreview() {
             </div>
 
             {/* Score ring card */}
-            <div className="mt-3 relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-background via-[color:var(--card)] to-[color:var(--lime)]/25 ring-1 ring-black/5">
+            <div className="mt-3 relative overflow-hidden rounded-2xl p-4 bg-linear-to-br from-background via-[color:var(--card)] to-[color:var(--lime)]/25 ring-1 ring-foreground/5">
               <span className="absolute top-2 right-3 font-display italic text-4xl text-foreground/10">55</span>
               <div className="flex justify-center">
                 <svg viewBox="0 0 120 120" className="size-32">
                   <defs>
                     <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#CCDA18" />
-                      <stop offset="60%" stopColor="#E1C340" />
-                      <stop offset="100%" stopColor="#DD9B9B" />
+                      <stop offset="0%" stopColor="var(--brand-red)" />
+                      <stop offset="100%" stopColor="var(--brand-pink)" />
                     </linearGradient>
                   </defs>
                   <circle cx="60" cy="60" r="48" fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth="10" />
@@ -988,7 +1052,7 @@ function Community() {
     >
       <div className="grid gap-4 md:grid-cols-3">
         {posts.map((p) => (
-          <div key={p.n} className="rounded-3xl bg-card p-6 ring-1 ring-black/5">
+          <div key={p.n} className="rounded-3xl bg-card p-6 ring-1 ring-foreground/5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 font-display text-primary">
                 {p.n[0]}
@@ -1026,7 +1090,7 @@ function Prize() {
     <section className="relative overflow-hidden bg-[color:var(--card)]">
       <div className="pointer-events-none absolute -top-32 left-1/2 -z-0 size-[28rem] -translate-x-1/2 rounded-full bg-accent/40 blur-3xl" />
       <div className="relative mx-auto max-w-6xl px-6 py-24">
-      <div className="relative overflow-hidden rounded-[2rem] p-10 md:p-16 ring-1 ring-black/5 bg-gradient-to-br from-accent/40 via-[color:var(--card)] to-[color:var(--destructive)]/30 shadow-2xl shadow-accent/20">
+      <div className="relative overflow-hidden rounded-[2rem] p-10 md:p-16 ring-1 ring-foreground/5 bg-linear-to-br from-accent/40 via-[color:var(--card)] to-[color:var(--destructive)]/30 shadow-2xl shadow-accent/20">
         <div className="pointer-events-none absolute -top-24 -right-24 size-72 rounded-full bg-[color:var(--lime)]/40 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 -left-24 size-72 rounded-full bg-[color:var(--destructive)]/40 blur-3xl" />
         <div className="relative">
@@ -1044,7 +1108,7 @@ function Prize() {
           {judged.map((j, i) => (
             <div
               key={j}
-              className="rounded-2xl bg-background/70 p-4 ring-1 ring-black/5 backdrop-blur"
+              className="rounded-2xl bg-background/70 p-4 ring-1 ring-foreground/5 backdrop-blur"
             >
               <span className="font-mono text-[10px] text-foreground/50">
                 0{i + 1}
@@ -1073,7 +1137,7 @@ function FAQ() {
   const [open, setOpen] = useState<number | null>(0);
   return (
     <Section tone="cream" eyebrow="FAQ" title="Frequently Asked Questions">
-      <div className="mx-auto max-w-3xl divide-y divide-border rounded-3xl bg-card ring-1 ring-black/5">
+      <div className="mx-auto max-w-3xl divide-y divide-border rounded-3xl bg-card ring-1 ring-foreground/5">
         {faqs.map((f, i) => {
           const isOpen = open === i;
           return (
@@ -1109,7 +1173,7 @@ function MeetSuzzi() {
   return (
     <Section tone="shell" glow="blush" eyebrow="Meet the Founder" title="Meet Suzzi">
       <div className="mx-auto grid max-w-4xl items-center gap-10 md:grid-cols-[1fr_1.2fr]">
-        <div className="relative aspect-[4/5] overflow-hidden rounded-3xl ring-1 ring-black/5">
+        <div className="relative aspect-[4/5] overflow-hidden rounded-3xl ring-1 ring-foreground/5">
           <img
             src={suzziAsset.url}
             alt="Suzzi Hartery, founder of The Feel Good Society"
@@ -1160,7 +1224,7 @@ function SuccessStories() {
         {quotes.map((s) => (
           <figure
             key={s.n}
-            className="flex h-full flex-col justify-between rounded-3xl bg-card p-8 ring-1 ring-black/5 transition hover:-translate-y-1 hover:shadow-xl"
+            className="flex h-full flex-col justify-between rounded-3xl bg-card p-8 ring-1 ring-foreground/5 transition hover:-translate-y-1 hover:shadow-xl"
           >
             <blockquote className="font-display text-xl italic leading-relaxed text-foreground">
               "{s.d}"
@@ -1230,7 +1294,7 @@ function FinalCTA() {
           })}
         </div>
 
-      <div className="relative mt-16 overflow-hidden rounded-[2rem] px-8 py-20 text-center md:px-16 md:py-28 ring-1 ring-black/5 bg-gradient-to-br from-[color:var(--lime)]/40 via-[color:var(--card)] to-[color:var(--destructive)]/35 shadow-2xl shadow-[color:var(--destructive)]/20">
+      <div className="relative mt-16 overflow-hidden rounded-[2rem] px-8 py-20 text-center md:px-16 md:py-28 ring-1 ring-foreground/5 bg-linear-to-br from-[color:var(--lime)]/40 via-[color:var(--card)] to-[color:var(--destructive)]/35 shadow-2xl shadow-[color:var(--destructive)]/20">
         <div className="pointer-events-none absolute -top-24 -left-24 size-96 rounded-full bg-accent/40 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 -right-24 size-96 rounded-full bg-[color:var(--destructive)]/50 blur-3xl" />
         <div className="relative">
@@ -1240,7 +1304,7 @@ function FinalCTA() {
           <h2 className="mt-6 font-display text-5xl leading-tight md:text-7xl">
             Build the Health
             <br />
-            You'll Keep for <em className="not-italic bg-accent px-3 py-1 rounded-2xl text-foreground">Life.</em>
+            You'll Keep for <em className="not-italic bg-primary px-3 py-1 rounded-2xl text-primary-foreground">Life.</em>
           </h2>
           <p className="mx-auto mt-8 max-w-lg text-foreground/75">
             Because lasting health isn't built overnight, it's built every day.
@@ -1265,7 +1329,24 @@ function Footer() {
       <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
         © {new Date().getFullYear()} The Feel Good Society
       </p>
-      <nav className="mt-3 flex items-center justify-center gap-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+        <a
+          href={WHATSAPP_LINK}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-background transition hover:opacity-90"
+        >
+          <WhatsAppGlyph className="size-4" />
+          WhatsApp {WHATSAPP_DISPLAY}
+        </a>
+        <a
+          href={`mailto:${CONTACT_EMAIL}`}
+          className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-xs font-semibold uppercase tracking-widest transition hover:border-foreground/30"
+        >
+          {CONTACT_EMAIL}
+        </a>
+      </div>
+      <nav className="mt-5 flex items-center justify-center gap-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
         <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
         <Link to="/terms" className="hover:text-foreground">Terms</Link>
       </nav>

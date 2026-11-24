@@ -1,5 +1,3 @@
-import type { WheelScores } from "@feelgood/shared";
-
 export const ONBOARDING_STEPS = [
   "welcome",
   "why",
@@ -12,7 +10,7 @@ export const ONBOARDING_STEPS = [
   "done",
 ] as const;
 
-export type { OnboardingStep, WheelKey, WheelScores } from "@feelgood/shared";
+export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
 
 export const GOAL_OPTIONS = [
   "Lose weight",
@@ -31,13 +29,16 @@ export const WHEEL_DIMENSIONS = [
   { key: "energy", label: "Energy" },
   { key: "confidence", label: "Confidence" },
   { key: "fitness", label: "Fitness" },
-  { key: "stress", label: "Stress Management" },
+  { key: "stress", label: "Stress" },
   { key: "digestion", label: "Digestion" },
   { key: "consistency", label: "Consistency" },
   { key: "motivation", label: "Motivation" },
   { key: "mood", label: "Mood" },
-  { key: "overall_health", label: "Overall Health" },
+  { key: "overall_health", label: "Overall health" },
 ] as const;
+
+export type WheelKey = (typeof WHEEL_DIMENSIONS)[number]["key"];
+export type WheelScores = Record<WheelKey, number>;
 
 export function emptyWheel(): WheelScores {
   return WHEEL_DIMENSIONS.reduce((acc, d) => {

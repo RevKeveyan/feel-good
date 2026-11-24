@@ -3,12 +3,9 @@ import { Headphones, Pause, Play, Lock } from "lucide-react";
 import {
   MINDSET_CATEGORIES,
   MINDSET_TRACKS,
-  getMindsetAudioUrl,
   type MindsetTrack,
   type MindsetCategory,
 } from "@/lib/mindset-tracks";
-
-const audioBase = (import.meta.env.VITE_MINDSET_AUDIO_BASE_URL as string | undefined) ?? null;
 
 export function MindsetLibrary({ compact = false }: { compact?: boolean }) {
   const [activeCategory, setActiveCategory] = useState<MindsetCategory | "All">(
@@ -17,19 +14,10 @@ export function MindsetLibrary({ compact = false }: { compact?: boolean }) {
   const [playingId, setPlayingId] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const tracksWithAudio = useMemo(
-    () =>
-      MINDSET_TRACKS.map((t) => ({
-        ...t,
-        audioUrl: getMindsetAudioUrl(t.day, audioBase),
-      })),
-    [],
-  );
-
   const filtered = useMemo(() => {
-    if (activeCategory === "All") return tracksWithAudio;
-    return tracksWithAudio.filter((t) => t.category === activeCategory);
-  }, [activeCategory, tracksWithAudio]);
+    if (activeCategory === "All") return MINDSET_TRACKS;
+    return MINDSET_TRACKS.filter((t) => t.category === activeCategory);
+  }, [activeCategory]);
 
   const togglePlay = (track: MindsetTrack) => {
     if (!track.audioUrl) return;
@@ -55,10 +43,7 @@ export function MindsetLibrary({ compact = false }: { compact?: boolean }) {
 
       <header className={compact ? "px-6 pt-8 pb-4" : "px-6 pt-10 pb-6"}>
         <div className="flex items-start gap-3">
-          <div
-            className="mt-1 flex size-11 items-center justify-center rounded-2xl shrink-0"
-            style={{ background: "#F2BDC2" }}
-          >
+          <div className="mt-1 flex size-11 shrink-0 items-center justify-center rounded-2xl bg-secondary">
             <Headphones className="size-5 text-foreground" />
           </div>
           <div className="min-w-0">
@@ -138,13 +123,8 @@ export function MindsetLibrary({ compact = false }: { compact?: boolean }) {
                             ? "bg-muted text-muted-foreground"
                             : isPlaying
                             ? "bg-foreground text-background"
-                            : "text-foreground hover:opacity-90"
+                            : "bg-primary text-primary-foreground hover:opacity-90"
                         }`}
-                        style={
-                          !locked && !isPlaying
-                            ? { background: "#E1C340" }
-                            : undefined
-                        }
                       >
                         {locked ? (
                           <Lock className="size-4" />
@@ -180,8 +160,7 @@ export function MindsetLibrary({ compact = false }: { compact?: boolean }) {
       </section>
 
       <p className="mt-6 px-6 text-center text-[11px] text-muted-foreground">
-        A track unlocks when its audio file is on the CDN (day-XX.mp3). It is not locked to the
-        challenge calendar day.
+        Audio for each day will unlock as it is added.
       </p>
     </div>
   );

@@ -17,6 +17,11 @@ export const Route = createFileRoute("/_authenticated/test-checklist")({
   head: () => ({
     meta: [
       { title: "End-to-End Test Checklist" },
+      { name: "description", content: "Verify the complete Feel Good Society challenge journey before launch." },
+      { property: "og:title", content: "End-to-End Test Checklist" },
+      { property: "og:description", content: "Verify the complete Feel Good Society challenge journey before launch." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
@@ -55,19 +60,13 @@ function TestChecklistPage() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setDone(JSON.parse(raw));
-    } catch {
-      /* ignore corrupt localStorage */
-    }
+    } catch {}
   }, []);
 
   const toggle = useCallback((id: string) => {
     setDone((d) => {
       const next = { ...d, [id]: !d[id] };
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        /* ignore quota / private mode */
-      }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
       return next;
     });
   }, []);
@@ -79,16 +78,11 @@ function TestChecklistPage() {
       setLog((l) => [{ id, msg, ts: Date.now(), ok: true }, ...l].slice(0, 20));
       setDone((d) => {
         const next = { ...d, [id]: true };
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-        } catch {
-          /* ignore quota / private mode */
-        }
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
         return next;
       });
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Failed";
-      setLog((l) => [{ id, msg, ts: Date.now(), ok: false }, ...l].slice(0, 20));
+    } catch (e: any) {
+      setLog((l) => [{ id, msg: e?.message ?? "Failed", ts: Date.now(), ok: false }, ...l].slice(0, 20));
     } finally {
       setBusy(null);
     }
@@ -117,7 +111,7 @@ function TestChecklistPage() {
       action: {
         label: "Count pending via API",
         run: async () => {
-          const rows = await listAll({ data: { status: "pending" } });
+          const rows = (await listAll({ data: { status: "pending" } })) as any[];
           return `${rows.length} pending testimonials in queue.`;
         },
       },
@@ -156,7 +150,7 @@ function TestChecklistPage() {
       action: {
         label: "Run anon check",
         run: async () => {
-          const rows = await publicCheck();
+          const rows = (await publicCheck()) as any[];
           const bad = rows.filter(
             (r) => r.status !== "approved" || r.permission_to_publish !== true,
           );
@@ -227,7 +221,7 @@ function TestChecklistPage() {
             </div>
 
             {e2e.error && (
-              <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+              <div className="mt-4 rounded-md border border-primary/30 bg-primary/10 p-3 text-sm text-primary">
                 {e2e.error}
               </div>
             )}
@@ -237,8 +231,8 @@ function TestChecklistPage() {
                 <div
                   className={`flex items-center gap-2 rounded-md p-2 text-sm font-semibold ${
                     e2e.result.ok
-                      ? "bg-green-100 text-green-900"
-                      : "bg-red-100 text-red-900"
+                      ? "bg-secondary/40 text-foreground"
+                      : "bg-primary/10 text-primary"
                   }`}
                 >
                   {e2e.result.ok ? (
@@ -254,9 +248,9 @@ function TestChecklistPage() {
                   {e2e.result.steps.map((st) => (
                     <li key={st.step} className="flex items-start gap-2">
                       {st.ok ? (
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
                       ) : (
-                        <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                        <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                       )}
                       <span>
                         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
@@ -345,7 +339,7 @@ function TestChecklistPage() {
               <li
                 key={i}
                 className={`rounded-md border p-3 text-sm ${
-                  l.ok ? "border-green-200 bg-green-50 text-green-900" : "border-red-200 bg-red-50 text-red-900"
+                  l.ok ? "border-secondary bg-secondary/30 text-foreground" : "border-primary/30 bg-primary/10 text-primary"
                 }`}
               >
                 <div className="flex items-center justify-between gap-4">

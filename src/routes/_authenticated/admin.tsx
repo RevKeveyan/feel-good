@@ -11,11 +11,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Shield, Sparkles, Check, X, RefreshCw, Database } from "lucide-react";
+import { AdminClinicUploads } from "@/components/AdminClinicUploads";
+import { AdminAreaApprovals } from "@/components/AdminAreaApprovals";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
-      { title: "Admin — Testimonials" },
+      { title: "Admin, The Feel Good Society App" },
+      { name: "description", content: "Manage member approvals, clinic documents and transformation stories." },
+      { property: "og:title", content: "Admin, The Feel Good Society App" },
+      { property: "og:description", content: "Manage member approvals, clinic documents and transformation stories." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
@@ -117,11 +124,12 @@ function AdminDashboard() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
+      {!isForbidden && <><AdminAreaApprovals /><AdminClinicUploads /></>}
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Shield className="h-6 w-6" />
           <div>
-            <h1 className="text-2xl font-semibold">Admin — Testimonials</h1>
+            <h1 className="text-2xl font-semibold">The Feel Good Society Admin</h1>
             <p className="text-sm text-muted-foreground">
               Review pending submissions and seed mock data for testing.
             </p>
@@ -130,26 +138,23 @@ function AdminDashboard() {
         <Link to="/test-checklist" className="text-sm underline">
           Test checklist →
         </Link>
-        <Link to="/today" className="text-sm underline">
-          ← Back to today
+        <Link to="/app" className="text-sm underline">
+          ← App areas
         </Link>
       </header>
 
       {flash && (
-        <div className="mb-4 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-900">
+        <div className="mb-4 rounded-md border border-secondary bg-secondary/30 p-3 text-sm text-foreground">
           {flash}
         </div>
       )}
       {error && (
-        <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+        <div className="mb-4 rounded-md border border-primary/30 bg-primary/10 p-3 text-sm text-primary">
           {error}
           {isForbidden && (
             <div className="mt-3">
-              <Button size="sm" onClick={onClaim} disabled={busy === "claim"}>
-                Claim first-admin access
-              </Button>
-              <p className="mt-2 text-xs text-red-800/80">
-                Only works if no admin exists yet.
+              <p className="mt-2 text-xs text-primary/80">
+                An administrator account is required to manage approvals.
               </p>
             </div>
           )}
@@ -210,7 +215,7 @@ function AdminDashboard() {
                         >
                           {t.status}
                         </Badge>
-                        <span className="flex items-center gap-0.5 text-amber-500">
+                        <span className="flex items-center gap-0.5 text-primary">
                           {Array.from({ length: t.rating }).map((_, i) => (
                             <Sparkles key={i} className="h-3 w-3 fill-current" />
                           ))}

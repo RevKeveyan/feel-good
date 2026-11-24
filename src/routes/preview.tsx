@@ -6,17 +6,24 @@ import { Flame, CheckCircle2, Lock, Heart, Camera, Sparkles, ArrowRight, ImagePl
 import { RadarChart } from "@/components/RadarChart";
 import { WHEEL_DIMENSIONS, GOAL_OPTIONS, emptyWheel, type WheelScores, type WheelKey } from "@/lib/onboarding";
 import { quoteForDate } from "@/lib/quotes";
-import { todayISO } from "@/lib/challenge";
+import { todayISO, type DailyEntry } from "@/lib/challenge";
 import { submitTestimonial } from "@/lib/testimonials.functions";
 import { MindsetLibrary } from "@/components/MindsetLibrary";
+import { AllDaysView } from "@/components/AllDaysView";
+import { ClinicView } from "@/components/ClinicView";
+import { AppAreaChooser } from "@/components/AppAreaChooser";
 
 type ScaleValue = number | null;
 
 export const Route = createFileRoute("/preview")({
   head: () => ({
     meta: [
-      { title: "Preview, Feel Good Challenge" },
-      { name: "description", content: "Preview of the onboarding flow and daily dashboard." },
+      { title: "App Preview, The Feel Good Society" },
+      { name: "description", content: "Preview the app access, Challenge and Clinic Clients areas." },
+      { property: "og:title", content: "App Preview, The Feel Good Society" },
+      { property: "og:description", content: "Preview the app access, Challenge and Clinic Clients areas." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -24,6 +31,7 @@ export const Route = createFileRoute("/preview")({
 });
 
 const TABS = [
+  "App access",
   "Onboarding, Welcome",
   "Onboarding, Why",
   "Onboarding, Goals",
@@ -37,10 +45,12 @@ const TABS = [
   "Check-in History",
   "Day 55, Rewheel",
   "Challenge Complete",
+  "All days",
+  "Clinic",
 ] as const;
 
 function PreviewPage() {
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState(-1);
 
   return (
     <div className="min-h-screen bg-muted/40">
@@ -54,22 +64,23 @@ function PreviewPage() {
           </p>
         </div>
         <div className="max-w-5xl mx-auto px-6 pb-3 flex gap-2 overflow-x-auto">
-          {TABS.map((t, i) => (
+          {TABS.map((t, index) => { const i = index - 1; return (
             <button
               key={t}
               onClick={() => setTab(i)}
               className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold whitespace-nowrap transition ${
-                tab === i ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground ring-1 ring-black/5"
+                tab === i ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground ring-1 ring-foreground/5"
               }`}
             >
               {t}
             </button>
-          ))}
+          ); })}
         </div>
       </header>
 
       <main className="max-w-md mx-auto p-6">
-        <div className="bg-background rounded-3xl shadow-sm ring-1 ring-black/5 overflow-hidden">
+        {tab === -1 ? <div className="-mx-6 bg-background"><AppAreaChooser access={{ challenge: "approved", clinic: "pending" }} onEnter={() => setTab(8)} onRequest={() => toast.message("Preview mode, request not saved.")} onRefresh={() => undefined} /></div> : <>
+        <div className="bg-background rounded-3xl shadow-sm ring-1 ring-foreground/5 overflow-hidden">
           {tab === 0 && <StepWelcome />}
           {tab === 1 && <StepWhy />}
           {tab === 2 && <StepGoals />}
@@ -83,10 +94,15 @@ function PreviewPage() {
           {tab === 10 && <CheckInHistoryPreview />}
           {tab === 11 && <Day55RewheelPreview />}
           {tab === 12 && <ChallengeCompletePreview />}
+          {tab === 13 && (
+            <AllDaysPreview onOpenToday={() => setTab(8)} onOpenFinalCheckIn={() => setTab(11)} />
+          )}
+          {tab === 14 && <ClinicView />}
         </div>
         <p className="text-center text-[11px] text-muted-foreground mt-4">
           This is a visual preview with mock data. Signed-in users get live saving, uploads, and progress tracking.
         </p>
+        </>}
       </main>
     </div>
   );
@@ -132,7 +148,7 @@ function StepWelcome() {
       <p className="text-muted-foreground text-base leading-relaxed mb-8">
         It's your commitment to becoming the healthiest version of yourself. Over the next 55 days, we'll build habits you'll keep for life, one day at a time.
       </p>
-      <div className="rounded-3xl bg-card p-6 ring-1 ring-black/5">
+      <div className="rounded-3xl bg-card p-6 ring-1 ring-foreground/5">
         <p className="text-sm text-muted-foreground leading-relaxed">
           Before Day 1, we'll spend a few minutes on the emotional foundation, why you're here, what you want to feel, and what success actually looks like for you. This is the part most challenges skip. It's what makes yours stick.
         </p>
@@ -158,7 +174,7 @@ function StepWhy() {
         {prompts.map((p) => (
           <div key={p}>
             <label className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">{p}</label>
-            <div className="w-full rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-black/5 h-16" />
+            <div className="w-full rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-foreground/5 h-16" />
           </div>
         ))}
       </div>
@@ -193,14 +209,14 @@ function StepGoals() {
               onClick={() => toggle(g)}
               className={`flex items-center justify-between gap-2 rounded-2xl p-4 text-left text-sm font-medium ring-1 transition active:scale-[0.98] ${
                 isOn
-                  ? "bg-gradient-to-br from-[color:var(--lime)]/80 via-[#F8EFEE] to-[color:var(--destructive)]/70 text-foreground ring-[color:var(--lime)]/60 shadow-md"
-                  : "bg-card text-foreground ring-black/10 hover:ring-black/20"
+                  ? "bg-primary text-primary-foreground ring-primary shadow-md"
+                  : "bg-card text-foreground ring-foreground/10 hover:ring-foreground/20"
               }`}
             >
               <span>{g}</span>
               <span
                 className={`flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] transition ${
-                  isOn ? "bg-white/60 text-foreground" : "bg-muted ring-1 ring-black/10 text-transparent"
+                  isOn ? "bg-card text-primary" : "bg-muted ring-1 ring-foreground/10 text-transparent"
                 }`}
               >
                 ✓
@@ -219,7 +235,7 @@ function StepGoals() {
             value={otherText}
             onChange={(e) => setOtherText(e.target.value)}
             placeholder="In a few words…"
-            className="w-full rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-black/5 focus:ring-primary/30 focus:outline-none"
+            className="w-full rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-foreground/5 focus:ring-primary/30 focus:outline-none"
           />
         </div>
       )}
@@ -233,7 +249,7 @@ function StepCommitment() {
     <OnboardingFrame progress={3}>
       <Eyebrow text="Step 3 of 7" />
       <h1 className="font-display italic text-4xl leading-tight tracking-tight mb-4">Your commitment.</h1>
-      <div className="rounded-3xl bg-card p-8 ring-1 ring-black/5">
+      <div className="rounded-3xl bg-card p-8 ring-1 ring-foreground/5">
         <p className="font-display italic text-2xl leading-snug mb-6">
           "I commit to showing up for myself for the next 55 days."
         </p>
@@ -259,7 +275,7 @@ function StepWheel() {
       <p className="text-muted-foreground text-base leading-relaxed mb-8">
         Rate where you are today across nine areas. You'll rate again on Day 55, this is your before.
       </p>
-      <div className="rounded-3xl bg-card p-6 ring-1 ring-black/5">
+      <div className="rounded-3xl bg-card p-6 ring-1 ring-foreground/5">
         <RadarChart axes={[...WHEEL_DIMENSIONS]} values={wheel} />
       </div>
       <div className="mt-6 space-y-4">
@@ -292,7 +308,7 @@ function StepVision() {
       </p>
       <div className="grid grid-cols-2 gap-3">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="relative overflow-hidden rounded-2xl aspect-square bg-gradient-to-br from-[color:var(--lime)]/25 via-card to-[color:var(--destructive)]/25 ring-1 ring-black/5 flex items-center justify-center">
+          <div key={i} className="relative overflow-hidden rounded-2xl aspect-square bg-linear-to-br from-[color:var(--lime)]/25 via-card to-[color:var(--destructive)]/25 ring-1 ring-foreground/5 flex items-center justify-center">
             <div className="pointer-events-none absolute -top-8 -right-8 size-24 rounded-full bg-[color:var(--accent)]/40 blur-2xl" />
             <Sparkles className="size-6 text-primary/60 relative" />
           </div>
@@ -318,7 +334,7 @@ function StepLetter() {
       <p className="text-muted-foreground text-base leading-relaxed mb-8">
         Write to the person you'll be on Day 55. What do you want them to know? What are you promising them? This letter will be sealed until then.
       </p>
-      <div className="w-full rounded-3xl bg-card p-5 text-base leading-relaxed font-display italic ring-1 ring-black/5 h-56 text-muted-foreground">
+      <div className="w-full rounded-3xl bg-card p-5 text-base leading-relaxed font-display italic ring-1 ring-foreground/5 h-56 text-muted-foreground">
         Dear future me, I'm proud of you for staying with this…
       </div>
       <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
@@ -385,7 +401,7 @@ function TodayDashboard() {
       </section>
 
       <section className="px-6 mb-6">
-        <div className="rounded-3xl bg-gradient-to-br from-[color:var(--lime)]/25 via-card to-[color:var(--destructive)]/25 ring-1 ring-black/5 p-6 relative overflow-hidden">
+        <div className="rounded-3xl bg-linear-to-br from-[color:var(--lime)]/25 via-card to-[color:var(--destructive)]/25 ring-1 ring-foreground/5 p-6 relative overflow-hidden">
           <div className="pointer-events-none absolute -top-10 -right-10 size-40 rounded-full bg-[color:var(--accent)]/40 blur-3xl" />
           <p className="font-mono text-[10px] uppercase tracking-widest text-primary mb-3 relative">Today's reminder</p>
           <p className="font-display italic text-lg leading-snug relative">"{quoteForDate(todayISO()).text}"</p>
@@ -396,7 +412,7 @@ function TodayDashboard() {
       </section>
 
       <section className="px-6 mb-6 grid grid-cols-2 gap-3">
-        <div className="rounded-2xl p-4 ring-1 ring-[color:var(--destructive)]/30 bg-gradient-to-br from-[color:var(--destructive)]/25 to-[color:var(--accent)]/25">
+        <div className="rounded-2xl p-4 ring-1 ring-[color:var(--destructive)]/30 bg-linear-to-br from-[color:var(--destructive)]/25 to-[color:var(--accent)]/25">
           <div className="flex items-center gap-2 mb-1">
             <Flame className="size-4 text-[color:var(--destructive)]" />
             <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/70">Streak</p>
@@ -406,20 +422,20 @@ function TodayDashboard() {
           </p>
           <p className="text-[11px] text-muted-foreground mt-1">Keep it going</p>
         </div>
-        <div className="rounded-2xl p-4 ring-1 ring-[color:var(--lime)]/50 bg-gradient-to-br from-[color:var(--lime)]/30 to-card">
+        <div className="rounded-2xl p-4 ring-1 ring-[color:var(--lime)]/50 bg-linear-to-br from-[color:var(--lime)]/30 to-card">
           <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/70 mb-1">Journey</p>
           <p className="text-2xl font-display italic">
             18<span className="text-xs font-sans not-italic text-muted-foreground ml-0.5">%</span>
           </p>
-          <div className="mt-2 h-1.5 w-full bg-black/10 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-[color:var(--lime)] to-[color:var(--accent)]" style={{ width: `18%` }} />
+          <div className="mt-2 h-1.5 w-full bg-foreground/10 rounded-full overflow-hidden">
+            <div className="h-full bg-linear-to-r from-[color:var(--lime)] to-[color:var(--accent)]" style={{ width: `18%` }} />
           </div>
           <p className="text-[11px] text-muted-foreground mt-1">10 of 55 days complete</p>
         </div>
       </section>
 
       <section className="px-6 mb-8">
-        <div className="rounded-3xl p-8 ring-1 ring-black/5 flex flex-col items-center relative overflow-hidden bg-gradient-to-br from-card via-[color:var(--lime)]/10 to-[color:var(--destructive)]/15">
+        <div className="rounded-3xl p-8 ring-1 ring-foreground/5 flex flex-col items-center relative overflow-hidden bg-linear-to-br from-card via-[color:var(--lime)]/10 to-[color:var(--destructive)]/15">
           <div className="pointer-events-none absolute -bottom-16 -left-16 size-48 rounded-full bg-[color:var(--accent)]/25 blur-3xl" />
           <div className="absolute top-0 right-0 p-4 opacity-5">
             <h2 className="font-display italic text-6xl">55</h2>
@@ -428,12 +444,11 @@ function TodayDashboard() {
             <svg className="size-full -rotate-90" viewBox="0 0 36 36">
               <defs>
                 <linearGradient id="score-arc-preview" x1="0" x2="1" y1="0" y2="1">
-                  <stop offset="0%" stopColor="#CCDA18" />
-                  <stop offset="60%" stopColor="#E1C340" />
-                  <stop offset="100%" stopColor="#DD9B9B" />
+                  <stop offset="0%" stopColor="var(--brand-red)" />
+                  <stop offset="100%" stopColor="var(--brand-pink)" />
                 </linearGradient>
               </defs>
-              <path stroke="#222222" strokeOpacity={0.1} strokeWidth="2.5" fill="none"
+              <path stroke="var(--foreground)" strokeOpacity={0.1} strokeWidth="2.5" fill="none"
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
               <path stroke="url(#score-arc-preview)" strokeWidth="3" strokeDasharray={dash} strokeLinecap="round" fill="none"
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
@@ -475,7 +490,7 @@ function TodayDashboard() {
             { title: "Mindset", sub: "5-10 mins of mindset practice", done: false },
           ].map((h) => (
             <div key={h.title}
-              className={`bg-card rounded-2xl p-4 ring-1 ${h.done ? "ring-black/5" : "ring-primary/30"} flex items-center gap-4`}>
+              className={`bg-card rounded-2xl p-4 ring-1 ${h.done ? "ring-foreground/5" : "ring-primary/30"} flex items-center gap-4`}>
               <div className={`size-6 rounded-full border-2 flex items-center justify-center ${h.done ? "border-primary bg-primary" : "border-primary/30"}`}>
                 {h.done && <div className="size-1.5 rounded-full bg-primary-foreground" />}
               </div>
@@ -486,7 +501,7 @@ function TodayDashboard() {
               <span className="font-mono text-[10px] text-primary">{h.done ? "+16 pts" : "16 pts"}</span>
             </div>
           ))}
-          <div className="bg-card rounded-2xl p-4 ring-1 ring-black/5">
+          <div className="bg-card rounded-2xl p-4 ring-1 ring-foreground/5">
             <div className="flex items-center gap-4 mb-4">
               <div className="size-6 rounded-full border-2 border-primary/30" />
               <div className="flex-1">
@@ -526,7 +541,7 @@ function TodayDashboard() {
       )}
 
       <section className="px-6">
-        <div className="bg-card rounded-3xl p-6 ring-1 ring-black/5">
+        <div className="bg-card rounded-3xl p-6 ring-1 ring-foreground/5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Week 2 of 8</p>
@@ -560,7 +575,7 @@ function CheckInModalPreview({ onClose }: { onClose: () => void }) {
   const required = energy != null && mood != null && stress != null && motivation != null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-foreground/40 p-0 sm:p-6">
       <div className="w-full max-w-md bg-background rounded-t-3xl sm:rounded-3xl p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h3 className="font-display text-xl italic">Daily check-in</h3>
@@ -584,7 +599,7 @@ function CheckInModalPreview({ onClose }: { onClose: () => void }) {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="One thing you noticed today…"
-              className="w-full rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-black/5"
+              className="w-full rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-foreground/5"
             />
           </div>
         </div>
@@ -646,7 +661,7 @@ function CheckInHistoryPreview() {
       </header>
 
       <section className="px-6 mb-6">
-        <div className="rounded-3xl bg-card p-6 ring-1 ring-black/5">
+        <div className="rounded-3xl bg-card p-6 ring-1 ring-foreground/5">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-3">7-day average</p>
           <div className="grid grid-cols-4 gap-3">
             {[
@@ -667,7 +682,7 @@ function CheckInHistoryPreview() {
       <section className="px-6 pb-8">
         <div className="space-y-3">
           {days.map((d) => (
-            <div key={d.day} className="rounded-2xl bg-card p-5 ring-1 ring-black/5">
+            <div key={d.day} className="rounded-2xl bg-card p-5 ring-1 ring-foreground/5">
               <div className="flex items-baseline justify-between mb-3">
                 <div>
                   <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Day {d.day}</p>
@@ -705,7 +720,7 @@ function ChallengeCompletePreview() {
   const after = { energy: 8, confidence: 8, mood: 8, stress: 3, digestion: 8, fitness: 7, motivation: 9, consistency: 8, overall_health: 8 };
   return (
     <div className="bg-background">
-      <header className="px-6 pt-8 pb-6 text-center bg-gradient-to-br from-primary/10 via-card to-accent/10">
+      <header className="px-6 pt-8 pb-6 text-center bg-linear-to-br from-primary/10 via-card to-accent/10">
         <p className="font-mono text-[10px] uppercase tracking-widest text-primary mb-2">Day 55 · Complete</p>
         <h2 className="font-display italic text-4xl leading-tight">You did it, Sarah.</h2>
         <p className="text-sm text-muted-foreground mt-3 max-w-xs mx-auto">
@@ -715,15 +730,15 @@ function ChallengeCompletePreview() {
 
       <section className="px-6 pt-6 pb-4">
         <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-2xl bg-card p-4 ring-1 ring-black/5 text-center">
+          <div className="rounded-2xl bg-card p-4 ring-1 ring-foreground/5 text-center">
             <p className="font-mono text-[10px] uppercase text-muted-foreground">Full days</p>
             <p className="font-display italic text-3xl mt-1">47</p>
           </div>
-          <div className="rounded-2xl bg-card p-4 ring-1 ring-black/5 text-center">
+          <div className="rounded-2xl bg-card p-4 ring-1 ring-foreground/5 text-center">
             <p className="font-mono text-[10px] uppercase text-muted-foreground">Longest streak</p>
             <p className="font-display italic text-3xl mt-1">19</p>
           </div>
-          <div className="rounded-2xl bg-card p-4 ring-1 ring-black/5 text-center">
+          <div className="rounded-2xl bg-card p-4 ring-1 ring-foreground/5 text-center">
             <p className="font-mono text-[10px] uppercase text-muted-foreground">Check-ins</p>
             <p className="font-display italic text-3xl mt-1">52</p>
           </div>
@@ -732,11 +747,11 @@ function ChallengeCompletePreview() {
 
       <section className="px-6 py-6">
         <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Before vs after</p>
-        <div className="rounded-3xl bg-card p-6 ring-1 ring-black/5">
+        <div className="rounded-3xl bg-card p-6 ring-1 ring-foreground/5">
           <RadarChart axes={[...WHEEL_DIMENSIONS]} values={after} compareValues={before} />
           <div className="mt-4 flex items-center justify-center gap-6 text-xs">
-            <span className="flex items-center gap-2"><span className="size-2 rounded-full" style={{ background: "#CCDA18" }} /> Day 1</span>
-            <span className="flex items-center gap-2"><span className="size-2 rounded-full" style={{ background: "#DD9B9B" }} /> Day 55</span>
+            <span className="flex items-center gap-2"><span className="size-2 rounded-full bg-secondary" /> Day 1</span>
+            <span className="flex items-center gap-2"><span className="size-2 rounded-full bg-primary" /> Day 55</span>
           </div>
         </div>
       </section>
@@ -750,7 +765,7 @@ function ChallengeCompletePreview() {
             { label: "Consistency", from: 3, to: 8 },
             { label: "Stress", from: 7, to: 3 },
           ].map((s) => (
-            <div key={s.label} className="rounded-2xl bg-card p-4 ring-1 ring-black/5 flex items-center justify-between">
+            <div key={s.label} className="rounded-2xl bg-card p-4 ring-1 ring-foreground/5 flex items-center justify-between">
               <span className="text-sm font-semibold">{s.label}</span>
               <span className="font-mono text-xs text-muted-foreground">{s.from}/10 → <span className="text-primary font-semibold">{s.to}/10</span></span>
             </div>
@@ -759,7 +774,7 @@ function ChallengeCompletePreview() {
       </section>
 
       <section className="px-6 pb-6">
-        <div className="rounded-3xl bg-card p-6 ring-1 ring-black/5">
+        <div className="rounded-3xl bg-card p-6 ring-1 ring-foreground/5">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Your letter, delivered</p>
           <p className="font-display italic text-base leading-relaxed text-muted-foreground">
             "Dear future me, I hope you kept going even on the hard days. I hope you feel lighter, stronger, and proud of yourself…"
@@ -816,8 +831,7 @@ function ShareTransformation() {
     try {
       await navigator.clipboard.writeText(summary);
       toast.success("Copied to clipboard");
-    } catch (err) {
-      console.error("clipboard write failed", err);
+    } catch {
       toast.error("Couldn't copy");
     }
   }
@@ -827,20 +841,20 @@ function ShareTransformation() {
     c.width = 1080; c.height = 1350;
     const ctx = c.getContext("2d")!;
     const g = ctx.createLinearGradient(0, 0, 0, c.height);
-    g.addColorStop(0, "#f5efe6"); g.addColorStop(1, "#e8dcc8");
+    g.addColorStop(0, "#EAE8E2"); g.addColorStop(1, "#F2BDC2");
     ctx.fillStyle = g; ctx.fillRect(0, 0, c.width, c.height);
-    ctx.fillStyle = "#1a1a1a";
+    ctx.fillStyle = "#000000";
     ctx.textAlign = "center";
     ctx.font = "italic 64px Georgia, serif";
     ctx.fillText("You did it.", c.width / 2, 240);
     ctx.font = "italic 96px Georgia, serif";
     ctx.fillText("55 days.", c.width / 2, 380);
     ctx.font = "32px system-ui, sans-serif";
-    ctx.fillStyle = "#555";
+    ctx.fillStyle = "#E00B10";
     const lines = ["47 full days", "19-day longest streak", "Energy  4 → 8", "Consistency  3 → 8", "Stress  7 → 3"];
     lines.forEach((l, i) => ctx.fillText(l, c.width / 2, 620 + i * 70));
     ctx.font = "italic 40px Georgia, serif";
-    ctx.fillStyle = "#1a1a1a";
+    ctx.fillStyle = "#000000";
     ctx.fillText("A different me.", c.width / 2, 1120);
     c.toBlob((blob) => {
       if (!blob) return;
@@ -856,25 +870,14 @@ function ShareTransformation() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="w-full rounded-full ring-1 ring-black/10 py-3 text-sm font-semibold flex items-center justify-center gap-2"
+        className="w-full rounded-full ring-1 ring-foreground/10 py-3 text-sm font-semibold flex items-center justify-center gap-2"
       >
         <Sparkles className="size-4" /> Share your transformation
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/50"
-            aria-label="Close share dialog"
-            onClick={() => setOpen(false)}
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Share your transformation"
-            className="relative z-10 w-full max-w-sm rounded-3xl bg-card p-6 ring-1 ring-black/5"
-          >
+        <div className="fixed inset-0 z-50 bg-foreground/50 flex items-end sm:items-center justify-center p-4" onClick={() => setOpen(false)}>
+          <div className="w-full max-w-sm rounded-3xl bg-card p-6 ring-1 ring-foreground/5" onClick={(e) => e.stopPropagation()}>
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Share</p>
             <h4 className="font-display italic text-2xl mb-4">Your 55 days</h4>
             <pre className="whitespace-pre-wrap text-sm text-muted-foreground bg-muted/40 rounded-2xl p-4 mb-4 font-sans">{summary}</pre>
@@ -882,10 +885,10 @@ function ShareTransformation() {
               <button onClick={nativeShare} className="w-full rounded-full bg-primary text-primary-foreground py-3 text-sm font-semibold flex items-center justify-center gap-2">
                 <Share2 className="size-4" /> Share via…
               </button>
-              <button onClick={downloadImage} className="w-full rounded-full ring-1 ring-black/10 py-3 text-sm font-semibold flex items-center justify-center gap-2">
+              <button onClick={downloadImage} className="w-full rounded-full ring-1 ring-foreground/10 py-3 text-sm font-semibold flex items-center justify-center gap-2">
                 <Download className="size-4" /> Download image
               </button>
-              <button onClick={copyText} className="w-full rounded-full ring-1 ring-black/10 py-3 text-sm font-semibold flex items-center justify-center gap-2">
+              <button onClick={copyText} className="w-full rounded-full ring-1 ring-foreground/10 py-3 text-sm font-semibold flex items-center justify-center gap-2">
                 <Copy className="size-4" /> Copy text
               </button>
               <button onClick={() => setOpen(false)} className="w-full rounded-full py-3 text-sm text-muted-foreground">
@@ -941,7 +944,7 @@ function TestimonialForm() {
 
   if (submitted) {
     return (
-      <div className="rounded-3xl bg-card p-6 ring-1 ring-black/5">
+      <div className="rounded-3xl bg-card p-6 ring-1 ring-foreground/5">
         <div className="flex flex-col items-center text-center mb-5">
           <div className="size-14 rounded-full bg-primary/10 flex items-center justify-center mb-3">
             <CheckCircle2 className="size-7 text-primary" />
@@ -989,7 +992,7 @@ function TestimonialForm() {
   }
 
   return (
-    <div className="rounded-3xl bg-card p-6 ring-1 ring-black/5">
+    <div className="rounded-3xl bg-card p-6 ring-1 ring-foreground/5">
       <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Leave a review</p>
       <h4 className="font-display italic text-2xl mb-1">Share your story.</h4>
       <p className="text-sm text-muted-foreground mb-5">
@@ -1070,7 +1073,7 @@ function Day55RewheelPreview() {
         Move each area to where you are now. Your Day 1 scores stay hidden — you'll see the full before-and-after on the next screen.
       </p>
 
-      <div className="rounded-3xl bg-card p-6 ring-1 ring-black/5">
+      <div className="rounded-3xl bg-card p-6 ring-1 ring-foreground/5">
         <RadarChart axes={[...WHEEL_DIMENSIONS]} values={wheel} />
       </div>
 
@@ -1112,3 +1115,60 @@ function Day55RewheelPreview() {
   );
 }
 
+
+function previewISO(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function mockEntry(day: number, startDate: string): DailyEntry {
+  const d = new Date(startDate + "T00:00:00");
+  d.setDate(d.getDate() + day - 1);
+  return {
+    id: `mock-${day}`,
+    user_id: "mock",
+    entry_date: previewISO(d),
+    nourish: true,
+    fuel: true,
+    move_done: true,
+    move_type: "Walk",
+    move_minutes: 30,
+    mindset: true,
+    mindset_type: "Affirmation",
+    water_ml: 2500,
+    energy: 7,
+    mood: 8,
+    stress: 4,
+    motivation: 8,
+    sleep_quality: 7,
+    notes: null,
+  };
+}
+
+function AllDaysPreview({
+  onOpenToday,
+  onOpenFinalCheckIn,
+}: {
+  onOpenToday: () => void;
+  onOpenFinalCheckIn: () => void;
+}) {
+  const today = todayISO();
+  const start = new Date(today + "T00:00:00");
+  start.setDate(start.getDate() - 11);
+  const startDate = previewISO(start);
+  const completeDays = [1, 2, 3, 4, 6, 7, 8, 10, 11, 12];
+  const entries = completeDays.map((d) => mockEntry(d, startDate));
+  return (
+    <AllDaysView
+      startDate={startDate}
+      entries={entries}
+      today={today}
+      waterTarget={2500}
+      streak={7}
+      completed={10}
+      currentDayNum={12}
+      onOpenToday={onOpenToday}
+      finalCheckInDone={false}
+      onOpenFinalCheckIn={onOpenFinalCheckIn}
+    />
+  );
+}

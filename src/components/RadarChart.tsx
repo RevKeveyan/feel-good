@@ -36,9 +36,9 @@ export function RadarChart({
     <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-auto">
       <defs>
         <radialGradient id={fillId} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#F2BDC2" stopOpacity="0.45" />
-          <stop offset="60%" stopColor="#DD9B9B" stopOpacity="0.28" />
-          <stop offset="100%" stopColor="#F8EFEE" stopOpacity="0.15" />
+          <stop offset="0%" stopColor="var(--brand-red)" stopOpacity="0.3" />
+          <stop offset="65%" stopColor="var(--brand-pink)" stopOpacity="0.32" />
+          <stop offset="100%" stopColor="var(--brand-white)" stopOpacity="0.2" />
         </radialGradient>
       </defs>
       {gridLevels.map((lvl) => (
@@ -52,7 +52,7 @@ export function RadarChart({
             })
             .join(" ")}
           fill="none"
-          stroke="#DD9B9B"
+          stroke="var(--foreground)"
           strokeOpacity={0.18}
           strokeWidth={1}
         />
@@ -66,20 +66,20 @@ export function RadarChart({
             y1={cy}
             x2={cx + Math.cos(angle) * radius}
             y2={cy + Math.sin(angle) * radius}
-            stroke="#DD9B9B"
+            stroke="var(--foreground)"
             strokeOpacity={0.14}
             strokeWidth={1}
           />
         );
       })}
       {comparePath && (
-        <path d={comparePath} fill="#CCDA18" fillOpacity={0.14} stroke="#CCDA18" strokeOpacity={0.55} strokeWidth={1.5} strokeDasharray="4 3" />
+        <path d={comparePath} fill="var(--brand-pink)" fillOpacity={0.2} stroke="var(--brand-pink)" strokeOpacity={0.9} strokeWidth={1.5} strokeDasharray="4 3" />
       )}
-      <path d={path} fill={`url(#${fillId})`} stroke="#DD9B9B" strokeWidth={2} strokeLinejoin="round" />
+      <path d={path} fill={`url(#${fillId})`} stroke="var(--brand-red)" strokeWidth={2} strokeLinejoin="round" />
       {axes.map((a, i) => {
         const [px, py] = pointFor(i, values[a.key] ?? 0);
         return (
-          <circle key={`pt-${a.key}`} cx={px} cy={py} r={3.5} fill="#FFFFFF" stroke="#DD9B9B" strokeWidth={1.5} />
+          <circle key={`pt-${a.key}`} cx={px} cy={py} r={3.5} fill="var(--brand-white)" stroke="var(--brand-red)" strokeWidth={1.5} />
         );
       })}
 

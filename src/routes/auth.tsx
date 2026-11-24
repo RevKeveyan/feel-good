@@ -3,12 +3,17 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in, The Feel Good Challenge" },
-      { name: "description", content: "Sign in to track your 55-day Feel Good Challenge." },
+      { title: "Sign in, The Feel Good Society App" },
+      { name: "description", content: "Sign in to access your Challenge and Clinic Clients areas." },
+      { property: "og:title", content: "Sign in, The Feel Good Society App" },
+      { property: "og:description", content: "Sign in to access your Challenge and Clinic Clients areas." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AuthPage,
@@ -24,7 +29,7 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/today" });
+      if (data.session) navigate({ to: "/app", replace: true });
     });
   }, [navigate]);
 
@@ -46,7 +51,7 @@ function AuthPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate({ to: "/today" });
+        navigate({ to: "/app", replace: true });
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
@@ -66,7 +71,7 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/today" });
+    navigate({ to: "/app", replace: true });
   }
 
   return (
@@ -81,20 +86,20 @@ function AuthPage() {
         <div className="w-full max-w-sm animate-entrance">
           <div className="text-center mb-8">
             <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-              {mode === "signin" ? "Welcome back" : "Join the challenge"}
+              The Feel Good Society App
             </p>
             <h1 className="mt-3 font-display text-3xl italic">
-              {mode === "signin" ? "Sign in" : "Start your 55 days"}
+              {mode === "signin" ? "Sign in" : "Create your account"}
             </h1>
           </div>
 
-          <button
+          <Button
             onClick={handleGoogle}
             disabled={loading}
             className="w-full rounded-full border border-input bg-card px-5 py-3 text-sm font-semibold hover:bg-muted disabled:opacity-50"
           >
             Continue with Google
-          </button>
+          </Button>
 
           <div className="my-6 flex items-center gap-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
             <div className="h-px flex-1 bg-border" />
@@ -110,7 +115,7 @@ function AuthPage() {
                 placeholder="Your name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="w-full rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-foreground/5 focus:outline-none focus:ring-2 focus:ring-primary/40"
               />
             )}
             <input
@@ -119,7 +124,7 @@ function AuthPage() {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="w-full rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-foreground/5 focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
             <input
               type="password"
@@ -128,25 +133,25 @@ function AuthPage() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="w-full rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-foreground/5 focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
-            <button
+            <Button
               type="submit"
               disabled={loading}
               className="w-full rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
             >
               {loading ? "..." : mode === "signin" ? "Sign in" : "Create account"}
-            </button>
+            </Button>
           </form>
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
             {mode === "signin" ? "New here?" : "Already have an account?"}{" "}
-            <button
+            <Button variant="link"
               onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
               className="font-semibold text-primary underline underline-offset-2"
             >
               {mode === "signin" ? "Create an account" : "Sign in"}
-            </button>
+            </Button>
           </p>
         </div>
       </main>
