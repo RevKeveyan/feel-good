@@ -20,6 +20,8 @@ export type DailyEntry = {
   notes: string | null;
 };
 
+export type AreaAccessStatus = "awaiting" | "approved" | "not_approved";
+
 export type Profile = {
   id: string;
   display_name: string | null;
@@ -27,6 +29,8 @@ export type Profile = {
   challenge_start_date: string;
   onboarding_completed_at: string | null;
   avatar_path: string | null;
+  challenge_status: AreaAccessStatus;
+  clinic_status: AreaAccessStatus;
 };
 
 export function todayISO(): string {

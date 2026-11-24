@@ -1,6 +1,6 @@
 export { Screen } from "./Screen";
 export { DisplayTitle, Kicker, Body, Label, StatValue } from "./Typography";
-export { PrimaryButton, OutlineButton, GhostButton } from "./Buttons";
+export { PrimaryButton, OutlineButton, GhostButton, DarkButton } from "./Buttons";
 export { IconLabel } from "./IconLabel";
 export { BrandCard, GradientCard } from "./Cards";
 export { BrandWordmark } from "./BrandWordmark";
@@ -11,4 +11,5 @@ export { HabitToggle, HabitStatusDot, HabitPoints, HabitCopy } from "./HabitTogg
 export { HydrateCard } from "./HydrateCard";
 export { ProgressBar } from "./ProgressBar";
 export { ScoreRing } from "./ScoreRing";
+export { WhatsAppGlyph } from "./WhatsAppGlyph";
 export * from "./icons";

@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   stepText: {
     fontSize: typeScale.bodyMd.fontSize,
     color: colors.foreground,
-    fontFamily: fonts.sansSemi,
+    fontFamily: fonts.sans,
   },
   stepTextPrimary: { color: colors.primaryForeground },
   track: {

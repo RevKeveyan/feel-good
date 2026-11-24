@@ -5,7 +5,7 @@ import {
   StyleSheet,
   TextInput,
   View,
-  type TextInput as TextInputType,
+  type TextInputInstance,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import {
@@ -23,10 +23,9 @@ import {
   Kicker,
   Label,
   PrimaryButton,
-  SoftOrbs,
 } from "@/components/ui";
 import { KeyboardScreen } from "@/components/KeyboardScreen";
-import { borders, colors, fonts, radius, space, typeScale } from "@/src/theme";
+import { borders, colors, fonts, radius, space, typeScale, withAlpha } from "@/src/theme";
 
 const MIN_PASSWORD = 6;
 
@@ -44,8 +43,9 @@ export default function ResetPasswordScreen() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
-  const codeRef = useRef<TextInputType>(null);
-  const confirmRef = useRef<TextInputType>(null);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const codeRef = useRef<TextInputInstance>(null);
+  const confirmRef = useRef<TextInputInstance>(null);
 
   useEffect(() => {
     if (paramEmail) setEmail(paramEmail);
@@ -129,7 +129,7 @@ export default function ResetPasswordScreen() {
       }
       await updatePassword(password);
       Alert.alert("Password updated", "You're signed in with your new password.");
-      router.replace("/(app)/overview");
+      router.replace("/(app)/choose");
     } catch (e) {
       Alert.alert("Error", e instanceof Error ? e.message : "Could not update password");
     } finally {
@@ -150,11 +150,7 @@ export default function ResetPasswordScreen() {
   }
 
   return (
-    <KeyboardScreen
-      style={styles.container}
-      contentContainerStyle={styles.scrollInner}
-      background={<SoftOrbs />}
-    >
+    <KeyboardScreen style={styles.container} contentContainerStyle={styles.scrollInner}>
       <View style={styles.content}>
         <BrandWordmark size="md" />
         <View style={styles.headingBlock}>
@@ -172,7 +168,11 @@ export default function ResetPasswordScreen() {
               Enter the one-time code we sent to your email. Links are not required.
             </Body>
             <TextInput
-              style={[styles.input, paramEmail ? styles.inputReadonly : null]}
+              style={[
+                styles.input,
+                paramEmail ? styles.inputReadonly : null,
+                focusedField === "email" && styles.inputFocused,
+              ]}
               placeholder="Email"
               placeholderTextColor={colors.mutedForeground}
               autoCapitalize="none"
@@ -182,23 +182,27 @@ export default function ResetPasswordScreen() {
               editable={!paramEmail}
               returnKeyType="next"
               blurOnSubmit={false}
+              onFocus={() => setFocusedField("email")}
+              onBlur={() => setFocusedField(null)}
               onSubmitEditing={() => codeRef.current?.focus()}
             />
             <TextInput
               ref={codeRef}
-              style={styles.input}
+              style={[styles.input, focusedField === "code" && styles.inputFocused]}
               placeholder="One-time code"
               placeholderTextColor={colors.mutedForeground}
               autoCapitalize="none"
               keyboardType="number-pad"
               value={code}
               onChangeText={setCode}
+              onFocus={() => setFocusedField("code")}
+              onBlur={() => setFocusedField(null)}
             />
             <PrimaryButton
               label="Verify code"
               onPress={handleVerifyCode}
               loading={loading}
-              style={{ marginTop: 8 }}
+              style={{ marginTop: space.sm }}
             />
             <Pressable onPress={handleResend} disabled={loading}>
               <Body size="sm" style={styles.switchText}>
@@ -212,7 +216,7 @@ export default function ResetPasswordScreen() {
               Choose a new password for your account. You will stay signed in after updating.
             </Body>
             <TextInput
-              style={styles.input}
+              style={[styles.input, focusedField === "password" && styles.inputFocused]}
               placeholder="New password"
               placeholderTextColor={colors.mutedForeground}
               value={password}
@@ -220,24 +224,28 @@ export default function ResetPasswordScreen() {
               secureTextEntry
               returnKeyType="next"
               blurOnSubmit={false}
+              onFocus={() => setFocusedField("password")}
+              onBlur={() => setFocusedField(null)}
               onSubmitEditing={() => confirmRef.current?.focus()}
             />
             <TextInput
               ref={confirmRef}
-              style={styles.input}
+              style={[styles.input, focusedField === "confirm" && styles.inputFocused]}
               placeholder="Confirm password"
               placeholderTextColor={colors.mutedForeground}
               value={confirm}
               onChangeText={setConfirm}
               secureTextEntry
               returnKeyType="done"
+              onFocus={() => setFocusedField("confirm")}
+              onBlur={() => setFocusedField(null)}
               onSubmitEditing={handleSubmitPassword}
             />
             <PrimaryButton
               label="Update password"
               onPress={handleSubmitPassword}
               loading={loading}
-              style={{ marginTop: 8 }}
+              style={{ marginTop: space.sm }}
             />
           </>
         )}
@@ -290,11 +298,16 @@ const styles = StyleSheet.create({
     fontSize: typeScale.input.fontSize,
     lineHeight: typeScale.input.lineHeight,
   },
+  inputFocused: {
+    borderWidth: 2,
+    borderColor: withAlpha(colors.primary, 0.4),
+  },
   inputReadonly: {
     opacity: 0.85,
   },
   switchText: { textAlign: "center", marginTop: space.p6 },
   switchLink: {
+    color: colors.primary,
     textDecorationLine: "underline",
     fontSize: typeScale.bodySm.fontSize,
     lineHeight: typeScale.bodySm.lineHeight,

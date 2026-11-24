@@ -9,7 +9,8 @@ type Props = {
   /** Web `blur-2xl` = 40, `blur-3xl` = 64. */
   blur: number;
   color: string;
-  opacity: number;
+  /** Omit for a solid brand fill; screens outside onboarding pass a wash. */
+  opacity?: number;
   top?: number;
   left?: number;
   right?: number;
@@ -32,7 +33,7 @@ export const SoftOrb = memo(function SoftOrb({
   size,
   blur,
   color,
-  opacity,
+  opacity = 1,
   top,
   left,
   right,

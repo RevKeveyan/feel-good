@@ -13,14 +13,16 @@ import {
 import { supabase } from "@/lib/supabase";
 import { flushOfflineQueue } from "@/lib/offline-queue";
 import { ChallengeGrid, ChallengeStats } from "@/components/ChallengeGrid";
+import { ContactUs } from "@/components/ContactUs";
 import {
   Body,
+  BrandWordmark,
+  DarkButton,
   DisplayTitle,
   Kicker,
-  PrimaryButton,
   Screen,
 } from "@/components/ui";
-import { colors, space } from "@/src/theme";
+import { colors, space, typeScale } from "@/src/theme";
 
 export default function OverviewScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -47,7 +49,13 @@ export default function OverviewScreen() {
         .limit(CHALLENGE_LENGTH + 5),
     ]);
 
-    const profileRow = p as Profile | null;
+    const profileRow = p
+      ? ({
+          ...(p as Profile),
+          challenge_status: (p as Profile).challenge_status ?? "awaiting",
+          clinic_status: (p as Profile).clinic_status ?? "awaiting",
+        } as Profile)
+      : null;
     if (profileRow && !profileRow.onboarding_completed_at) {
       setLoading(false);
       router.replace("/(app)/onboarding");
@@ -94,8 +102,15 @@ export default function OverviewScreen() {
   return (
     <Screen edges={["top"]}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Kicker>The Feel Good Challenge</Kicker>
-        <DisplayTitle style={styles.title}>All days</DisplayTitle>
+        <View style={styles.headerRow}>
+          <View style={styles.headerCopy}>
+            <Kicker>Challenge</Kicker>
+            <DisplayTitle size="lg" style={styles.title}>
+              All days
+            </DisplayTitle>
+          </View>
+          <BrandWordmark size="header" />
+        </View>
         <Body style={styles.lead}>
           Day {day} of {CHALLENGE_LENGTH}. Open today to log, or look back at a day you have already
           reached.
@@ -103,10 +118,10 @@ export default function OverviewScreen() {
 
         <ChallengeStats streak={streak} completed={completed} />
 
-        <PrimaryButton
+        <DarkButton
           label="Open today"
           onPress={() => router.push("/(app)/today")}
-          style={{ marginBottom: space.lg }}
+          style={styles.openToday}
         />
 
         <ChallengeGrid
@@ -114,8 +129,14 @@ export default function OverviewScreen() {
           entries={allEntries}
           currentDay={day}
           onPressDay={onPressDay}
+          onPressFinalCheckIn={() => router.push("/(app)/complete")}
         />
 
+        <ContactUs />
+
+        <Pressable style={styles.settings} onPress={() => router.push("/(app)/choose")}>
+          <Kicker style={styles.settingsText}>Areas</Kicker>
+        </Pressable>
         <Pressable style={styles.settings} onPress={() => router.push("/(app)/settings")}>
           <Kicker style={styles.settingsText}>Settings</Kicker>
         </Pressable>
@@ -127,8 +148,19 @@ export default function OverviewScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   scroll: { paddingTop: space.lg, paddingBottom: 48 },
-  title: { marginTop: space.xs },
-  lead: { marginTop: space.sm, marginBottom: space.p6 },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md,
+  },
+  headerCopy: { flex: 1 },
+  title: {
+    marginTop: space.xs,
+    fontSize: typeScale.display2xl.fontSize,
+    lineHeight: typeScale.display2xl.lineHeight,
+  },
+  lead: { marginTop: space.md, marginBottom: space.p6 },
+  openToday: { marginBottom: space["2xl"], paddingVertical: space.lg },
   settings: { alignItems: "center", paddingVertical: space.lg },
   settingsText: { color: colors.mutedForeground },
 });

@@ -36,9 +36,9 @@ export function RadarChart({ axes, values, size = 260, max = 10 }: Props) {
       <Svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
         <Defs>
           <RadialGradient id={fillId} cx="50%" cy="50%" r="50%">
-            <Stop offset="0%" stopColor={colors.secondary} stopOpacity={0.45} />
-            <Stop offset="60%" stopColor={colors.destructive} stopOpacity={0.28} />
-            <Stop offset="100%" stopColor={colors.card} stopOpacity={0.15} />
+            <Stop offset="0%" stopColor={colors.primary} stopOpacity={0.3} />
+            <Stop offset="65%" stopColor={colors.secondary} stopOpacity={0.32} />
+            <Stop offset="100%" stopColor={colors.card} stopOpacity={0.2} />
           </RadialGradient>
         </Defs>
         {gridLevels.map((lvl) => {
@@ -54,7 +54,7 @@ export function RadarChart({ axes, values, size = 260, max = 10 }: Props) {
               key={lvl}
               points={pts}
               fill="none"
-              stroke={colors.destructive}
+              stroke={colors.foreground}
               strokeOpacity={0.18}
               strokeWidth={1}
             />
@@ -69,7 +69,7 @@ export function RadarChart({ axes, values, size = 260, max = 10 }: Props) {
               y1={cy}
               x2={cx + Math.cos(angle) * radius}
               y2={cy + Math.sin(angle) * radius}
-              stroke={colors.destructive}
+              stroke={colors.foreground}
               strokeOpacity={0.14}
               strokeWidth={1}
             />
@@ -78,12 +78,20 @@ export function RadarChart({ axes, values, size = 260, max = 10 }: Props) {
         <Path
           d={pathD}
           fill={`url(#${fillId})`}
-          stroke={colors.destructive}
+          stroke={colors.primary}
           strokeWidth={2}
           strokeLinejoin="round"
         />
         {pathPoints.map((p, i) => (
-          <Circle key={`pt-${axes[i].key}`} cx={p.x} cy={p.y} r={3.5} fill={colors.white} stroke={colors.destructive} strokeWidth={1.5} />
+          <Circle
+            key={`pt-${axes[i].key}`}
+            cx={p.x}
+            cy={p.y}
+            r={3.5}
+            fill={colors.card}
+            stroke={colors.primary}
+            strokeWidth={1.5}
+          />
         ))}
         {axes.map((a, i) => {
           const angle = (Math.PI * 2 * i) / n - Math.PI / 2;

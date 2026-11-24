@@ -2,7 +2,7 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import type { LegalDocument } from "@feelgood/shared";
 import { Body, DisplayTitle, Kicker, Label, Screen } from "@/components/ui";
-import { colors, space, typeScale } from "@/src/theme";
+import { colors, space, typeScale, withAlpha } from "@/src/theme";
 
 export function LegalDocScreen({ doc }: { doc: LegalDocument }) {
   return (
@@ -11,7 +11,9 @@ export function LegalDocScreen({ doc }: { doc: LegalDocument }) {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Kicker>← Back</Kicker>
         </Pressable>
-        <DisplayTitle style={styles.title}>{doc.title}</DisplayTitle>
+        <DisplayTitle size="lg" style={styles.title}>
+          {doc.title}
+        </DisplayTitle>
         <Body size="sm" style={styles.updated}>
           Last updated: {doc.lastUpdated}
         </Body>
@@ -47,7 +49,7 @@ export function LegalDocScreen({ doc }: { doc: LegalDocument }) {
 
 const styles = StyleSheet.create({
   container: { paddingTop: space.lg, paddingBottom: 48 },
-  title: { marginTop: space.md, marginBottom: space.xs },
+  title: { marginTop: 24, marginBottom: space.xs },
   updated: { marginBottom: space.p6 },
   section: { marginBottom: space.lg },
   heading: {
@@ -58,10 +60,10 @@ const styles = StyleSheet.create({
   },
   paragraph: {
     marginBottom: space.md,
-    color: colors.foreground,
+    color: withAlpha(colors.foreground, 0.9),
     lineHeight: 23,
   },
   bulletRow: { flexDirection: "row", gap: space.sm, marginBottom: 6, paddingRight: space.sm },
-  bulletMark: { color: colors.foreground, lineHeight: 23 },
-  bulletText: { flex: 1, color: colors.foreground, lineHeight: 23 },
+  bulletMark: { color: withAlpha(colors.foreground, 0.9), lineHeight: 23 },
+  bulletText: { flex: 1, color: withAlpha(colors.foreground, 0.9), lineHeight: 23 },
 });

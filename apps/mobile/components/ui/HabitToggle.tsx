@@ -121,12 +121,10 @@ const styles = StyleSheet.create({
     fontFamily: fonts.kicker,
     fontSize: typeScale.kicker.fontSize,
     lineHeight: typeScale.kicker.lineHeight,
-    letterSpacing: typeScale.kicker.letterSpacing,
-    textTransform: "uppercase",
     color: colors.primary,
     flexShrink: 0,
   },
   pointsDone: {
-    color: colors.mutedForeground,
+    color: colors.primary,
   },
 });

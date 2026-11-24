@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     borderColor: colors.ringHairline,
   },
   wrapFilled: {
-    borderColor: withAlpha(colors.lime, 0.5),
+    borderColor: withAlpha(colors.primary, 0.6),
   },
   content: {
     padding: space.lg,

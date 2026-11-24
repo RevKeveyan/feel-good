@@ -26,6 +26,7 @@ import {
   Kicker,
   Label,
   Screen,
+  StatValue,
 } from "@/components/ui";
 import { borders, colors, iconSizes, radius, space, typeScale } from "@/src/theme";
 
@@ -156,6 +157,15 @@ export default function PastDayScreen() {
           Read only. Logging is only open for today.
         </Body>
 
+        {entry ? (
+          <View style={styles.scoreRow}>
+            <StatValue size="lg" style={styles.scoreValue}>
+              {score}
+            </StatValue>
+            <Kicker style={styles.scoreKicker}>daily score</Kicker>
+          </View>
+        ) : null}
+
         {!entry ? (
           <BrandCard style={styles.empty}>
             <Label>No check-in was logged for this day.</Label>
@@ -166,7 +176,7 @@ export default function PastDayScreen() {
           <DisplayTitle size="sm" style={styles.sectionTitle}>
             The Feel Good Five
           </DisplayTitle>
-          <Kicker>
+          <Kicker style={styles.sectionCount}>
             {habits} of 5 · score {score}
           </Kicker>
         </View>
@@ -281,6 +291,17 @@ const styles = StyleSheet.create({
     color: colors.mutedForeground,
   },
   empty: { marginBottom: space.lg, padding: space.p4 },
+  scoreRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: space.sm,
+    marginBottom: space.lg,
+  },
+  scoreValue: {
+    fontSize: typeScale.display4xl.fontSize,
+    lineHeight: typeScale.display4xl.lineHeight,
+  },
+  scoreKicker: { textTransform: "none", letterSpacing: 0 },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -289,6 +310,7 @@ const styles = StyleSheet.create({
     gap: space.md,
   },
   sectionTitle: { marginBottom: 0 },
+  sectionCount: { textTransform: "none" },
   habitStack: { gap: space.md, marginBottom: space["2xl"] },
   headerCopy: { flex: 1 },
   checkInCard: {

@@ -8,7 +8,17 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { borders, colors, fonts, opacity, radius, shadows, space, typeScale } from "@/src/theme";
+import {
+  borders,
+  colors,
+  fonts,
+  motion,
+  opacity,
+  radius,
+  shadows,
+  space,
+  typeScale,
+} from "@/src/theme";
 
 type Props = {
   label: string;
@@ -24,17 +34,19 @@ function ButtonContent({
   label,
   loading,
   textStyle,
+  spinnerColor,
   leadingIcon,
   trailingIcon,
 }: {
   label: string;
   loading?: boolean;
   textStyle: object;
+  spinnerColor: string;
   leadingIcon?: ReactNode;
   trailingIcon?: ReactNode;
 }) {
   if (loading) {
-    return <ActivityIndicator color={colors.primaryForeground} />;
+    return <ActivityIndicator color={spinnerColor} />;
   }
 
   if (!leadingIcon && !trailingIcon) {
@@ -59,16 +71,23 @@ export function PrimaryButton({
   leadingIcon,
   trailingIcon,
 }: Props) {
+  const inactive = disabled || loading;
   return (
     <Pressable
       onPress={onPress}
-      disabled={disabled || loading}
-      style={[styles.primary, (disabled || loading) && styles.disabled, style]}
+      disabled={inactive}
+      style={({ pressed }) => [
+        styles.primary,
+        inactive && styles.disabledNoShadow,
+        pressed && !inactive && styles.pressed,
+        style,
+      ]}
     >
       <ButtonContent
         label={label}
         loading={loading}
         textStyle={styles.primaryText}
+        spinnerColor={colors.primaryForeground}
         leadingIcon={leadingIcon}
         trailingIcon={trailingIcon}
       />
@@ -85,16 +104,23 @@ export function OutlineButton({
   leadingIcon,
   trailingIcon,
 }: Props) {
+  const inactive = disabled || loading;
   return (
     <Pressable
       onPress={onPress}
-      disabled={disabled || loading}
-      style={[styles.outline, (disabled || loading) && styles.disabled, style]}
+      disabled={inactive}
+      style={({ pressed }) => [
+        styles.outline,
+        inactive && styles.disabled,
+        pressed && !inactive && styles.pressed,
+        style,
+      ]}
     >
       <ButtonContent
         label={label}
         loading={loading}
         textStyle={styles.outlineText}
+        spinnerColor={colors.foreground}
         leadingIcon={leadingIcon}
         trailingIcon={trailingIcon}
       />
@@ -112,16 +138,57 @@ export function GhostButton({
   leadingIcon,
   trailingIcon,
 }: Props) {
+  const inactive = disabled || loading;
   return (
     <Pressable
       onPress={onPress}
-      disabled={disabled || loading}
-      style={[styles.ghost, (disabled || loading) && styles.disabled, style]}
+      disabled={inactive}
+      style={({ pressed }) => [
+        styles.ghost,
+        inactive && styles.disabled,
+        pressed && !inactive && styles.ghostPressed,
+        style,
+      ]}
     >
       <ButtonContent
         label={label}
         loading={loading}
         textStyle={styles.ghostText}
+        spinnerColor={colors.foreground}
+        leadingIcon={leadingIcon}
+        trailingIcon={trailingIcon}
+      />
+    </Pressable>
+  );
+}
+
+/** Web `bg-foreground text-background` pill — Open today, Message us, active tabs. */
+export function DarkButton({
+  label,
+  onPress,
+  disabled,
+  loading,
+  style,
+  leadingIcon,
+  trailingIcon,
+}: Props) {
+  const inactive = disabled || loading;
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={inactive}
+      style={({ pressed }) => [
+        styles.dark,
+        inactive && styles.disabled,
+        pressed && !inactive && styles.pressed,
+        style,
+      ]}
+    >
+      <ButtonContent
+        label={label}
+        loading={loading}
+        textStyle={styles.darkText}
+        spinnerColor={colors.background}
         leadingIcon={leadingIcon}
         trailingIcon={trailingIcon}
       />
@@ -173,11 +240,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  ghostPressed: {
+    backgroundColor: "rgba(0,0,0,0.05)",
+  },
   ghostText: {
     fontFamily: fonts.sans,
     color: colors.foreground70,
     fontSize: typeScale.button.fontSize,
     lineHeight: typeScale.button.lineHeight,
   },
+  dark: {
+    backgroundColor: colors.foreground,
+    borderRadius: radius.full,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  darkText: {
+    fontFamily: fonts.sansSemi,
+    color: colors.background,
+    fontSize: typeScale.button.fontSize,
+    lineHeight: typeScale.button.lineHeight,
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+  },
+  pressed: {
+    transform: [{ scale: motion.pressScale }],
+  },
   disabled: { opacity: opacity.disabled },
+  disabledNoShadow: {
+    opacity: opacity.disabled,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
 });

@@ -43,5 +43,5 @@ export default function Index() {
 
   if (!authed) return <Redirect href="/auth" />;
   if (recovery) return <Redirect href="/auth/reset" />;
-  return <Redirect href="/(app)/overview" />;
+  return <Redirect href="/(app)/choose" />;
 }

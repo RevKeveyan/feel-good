@@ -1,20 +1,16 @@
 {
   "expo": {
-    "name": "The Feel Good Challenge",
+    "name": "The Feel Good Society",
     "slug": "feel-good-challenge",
     "scheme": "feelgood",
-    "version": "1.1.2",
+    "version": "1.1.8",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#EBE5DD"
-    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.feelgoodsociety.challenge",
+      "buildNumber": "16",
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Take a profile photo or weekly progress and vision board photos.",
@@ -35,7 +31,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#EBE5DD"
+        "backgroundColor": "#EAE8E2"
       },
       "package": "com.feelgoodsociety.challenge",
       "softwareKeyboardLayoutMode": "resize",
@@ -63,14 +59,23 @@
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#222222"
+          "color": "#E00B10"
         }
       ],
       "expo-apple-authentication",
       "expo-font",
       "expo-web-browser",
       "expo-audio",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#EAE8E2",
+          "enableFullScreenImage_legacy": true
+        }
+      ]
     ],
     "extra": {
       "legalPrivacyUrl": "https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/legal/privacy.html",

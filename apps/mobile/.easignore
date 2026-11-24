@@ -1,0 +1,21 @@
+# Local / large assets not needed in EAS archive
+.env
+.env.*
+!.env.example
+
+# Mindset source audio lives in CDN; keep originals out of the build archive
+../../mindset/
+../mindset/
+mindset/
+**/*.mp3
+
+# Common junk
+**/.git/
+**/node_modules/
+**/android/app/build/
+**/ios/build/
+**/.expo/
+**/dist/
+**/coverage/
+**/*.log
+google-play-service-account.json

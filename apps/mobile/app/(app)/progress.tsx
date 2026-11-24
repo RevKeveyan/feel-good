@@ -103,7 +103,7 @@ export default function ProgressScreen() {
           </IconLabel>
         </Pressable>
 
-        <DisplayTitle style={styles.title}>My progress</DisplayTitle>
+        <DisplayTitle size="lg" style={styles.title}>My progress</DisplayTitle>
         <Body style={styles.lead}>
           Day {day} of {CHALLENGE_LENGTH}. Your vision board and every day of the challenge in one
           place.

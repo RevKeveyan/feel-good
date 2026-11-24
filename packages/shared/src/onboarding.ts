@@ -29,12 +29,12 @@ export const WHEEL_DIMENSIONS = [
   { key: "energy", label: "Energy" },
   { key: "confidence", label: "Confidence" },
   { key: "fitness", label: "Fitness" },
-  { key: "stress", label: "Stress" },
+  { key: "stress", label: "Stress Management" },
   { key: "digestion", label: "Digestion" },
   { key: "consistency", label: "Consistency" },
   { key: "motivation", label: "Motivation" },
   { key: "mood", label: "Mood" },
-  { key: "overall_health", label: "Overall health" },
+  { key: "overall_health", label: "Overall Health" },
 ] as const;
 
 export type WheelKey = (typeof WHEEL_DIMENSIONS)[number]["key"];

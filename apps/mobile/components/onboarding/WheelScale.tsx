@@ -1,6 +1,15 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { wheelColorFor } from "./wheelColorFor";
-import { colors, fonts, radius, space, typeScale } from "@/src/theme";
+import { LinearGradient } from "expo-linear-gradient";
+import {
+  borders,
+  colors,
+  fonts,
+  gradients,
+  radius,
+  space,
+  typeScale,
+  withAlpha,
+} from "@/src/theme";
 
 type Props = {
   label: string;
@@ -10,40 +19,59 @@ type Props = {
 
 export function WheelScale({ label, value, onChange }: Props) {
   return (
-    <View>
-      <View style={styles.header}>
-        <Text style={styles.label}>{label}</Text>
-        <Text style={styles.score}>{value}/10</Text>
-      </View>
-      <View style={styles.dots}>
-        {Array.from({ length: 10 }).map((_, i) => {
-          const n = i + 1;
-          const active = n <= value;
-          return (
-            <Pressable
-              key={n}
-              style={[
-                styles.dot,
-                active
-                  ? { backgroundColor: wheelColorFor(n) }
-                  : styles.dotIdle,
-              ]}
-              onPress={() => onChange(n)}
-            />
-          );
-        })}
+    <View style={styles.card}>
+      <LinearGradient
+        colors={[colors.card, withAlpha(colors.background, 0.6)]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={styles.inner}>
+        <View style={styles.header}>
+          <Text style={styles.label}>{label}</Text>
+          <Text style={styles.score}>{value}/10</Text>
+        </View>
+        <View style={styles.dots}>
+          {Array.from({ length: 10 }).map((_, i) => {
+            const n = i + 1;
+            const active = n <= value;
+            return (
+              <Pressable key={n} style={styles.dotWrap} onPress={() => onChange(n)}>
+                {active ? (
+                  <LinearGradient
+                    colors={[...gradients.wheelSegment]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={styles.dot}
+                  />
+                ) : (
+                  <View style={[styles.dot, styles.dotIdle]} />
+                )}
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  card: {
+    borderRadius: radius["2xl"],
+    overflow: "hidden",
+    borderWidth: borders.hairline,
+    borderColor: colors.ringHairline,
+  },
+  inner: {
+    padding: space.lg,
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: space.md,
-    marginBottom: space.sm,
+    marginBottom: space.md,
   },
   label: {
     fontFamily: fonts.sansSemi,
@@ -58,10 +86,10 @@ const styles = StyleSheet.create({
     color: colors.mutedForeground,
   },
   dots: { flexDirection: "row", gap: space.xs },
+  dotWrap: { flex: 1 },
   dot: {
-    flex: 1,
-    height: 28,
+    height: 32,
     borderRadius: radius.md,
   },
-  dotIdle: { backgroundColor: colors.muted },
+  dotIdle: { backgroundColor: colors.background },
 });

@@ -9,7 +9,7 @@ An 8-step guided experience at `/onboarding`, gated so users can't skip into the
 2. **Why are you here?** — 4 short-answer prompts (what made you join, what to change, how you want to feel, what success looks like).
 3. **Choose your goals** — multi-select from the 10 goals you listed (lose weight, energy, gut, stress, muscle, hormones, confidence, sleep, healthy habits, other).
 4. **Personal commitment** — the pledge sentence, typed name, Agree button. Stored as a signed commitment with timestamp.
-5. **Transformation Wheel (Day 1)** — 9 sliders (energy, confidence, mood, stress, digestion, fitness, motivation, consistency, overall health), 1–10 each. Rendered as a radar chart preview so it feels real. Repeats on Day 55 for the "before vs after" reveal.
+5. **Transformation Wheel (Day 1)** — 9 sliders (energy, confidence, mood, stress, digestion, fitness, motivation, consistency, Overall Health), 1–10 each. Rendered as a radar chart preview so it feels real. Repeats on Day 55 for the "before vs after" reveal.
 6. **Why Statement** — one longer free-text field, "Why does this matter?" Shown back to the user on Day 55.
 7. **Vision Board** — upload up to 8 images (private storage bucket), optional caption per image.
 8. **Future You letter** — long free-text letter to themselves. Locked until Day 55, then revealed with a "read your letter" moment.

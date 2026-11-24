@@ -13,7 +13,13 @@ import { router } from "expo-router";
 import { isRunningInExpoGo } from "expo";
 import * as ImagePicker from "expo-image-picker";
 import { ArrowLeft } from "@/components/ui/icons";
-import { CHALLENGE_LENGTH, CONTACT_EMAIL, LEGAL_URLS, type Profile } from "@feelgood/shared";
+import {
+  CHALLENGE_LENGTH,
+  CONTACT_EMAIL,
+  LEGAL_URLS,
+  todayISO,
+  type Profile,
+} from "@feelgood/shared";
 import { deleteAccount } from "@/lib/api";
 import { signOut } from "@/lib/auth";
 import {
@@ -105,6 +111,39 @@ export default function SettingsScreen() {
       return;
     }
     Alert.alert("Test scheduled", "A notification will fire in about 1 minute. Keep the app in background.");
+  }
+
+  function shiftISODate(iso: string, days: number): string {
+    const d = new Date(iso + "T00:00:00");
+    d.setDate(d.getDate() + days);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  async function setChallengeStartDate(iso: string) {
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth.user?.id;
+    if (!uid) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ challenge_start_date: iso })
+      .eq("id", uid);
+    if (error) {
+      Alert.alert("Error", error.message || "Could not update challenge day");
+      return;
+    }
+
+    setProfile((prev) => (prev ? { ...prev, challenge_start_date: iso } : prev));
+    router.replace("/(app)/today");
+  }
+
+  async function previewDay55() {
+    const iso = shiftISODate(todayISO(), -(CHALLENGE_LENGTH - 1));
+    await setChallengeStartDate(iso);
+  }
+
+  async function resetToDay1() {
+    await setChallengeStartDate(todayISO());
   }
 
   async function handleSignOut() {
@@ -259,6 +298,28 @@ export default function SettingsScreen() {
             <Body>Fires once — use to verify notifications</Body>
           </BrandCard>
         </Pressable>
+        <Pressable onPress={() => void previewDay55()}>
+          <BrandCard style={styles.row}>
+            <Label style={styles.rowTitle}>Preview Day 55</Label>
+            <Body>Sets start date so today is Day {CHALLENGE_LENGTH}</Body>
+          </BrandCard>
+        </Pressable>
+        <Pressable onPress={() => void resetToDay1()}>
+          <BrandCard style={styles.row}>
+            <Label style={styles.rowTitle}>Reset to Day 1</Label>
+            <Body>Sets challenge start date to today</Body>
+          </BrandCard>
+        </Pressable>
+        <Pressable
+          onPress={() =>
+            router.push({ pathname: "/(app)/onboarding", params: { edit: "1" } })
+          }
+        >
+          <BrandCard style={styles.row}>
+            <Label style={styles.rowTitle}>Onboarding</Label>
+            <Body>Fill or change your answers — existing ones are kept</Body>
+          </BrandCard>
+        </Pressable>
         <Pressable onPress={() => router.push("/privacy")}>
           <BrandCard style={styles.row}>
             <Label style={styles.rowTitle}>Privacy Policy</Label>
@@ -302,17 +363,17 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: radius.full,
-    backgroundColor: withAlpha(colors.primary, 0.1),
+    backgroundColor: withAlpha(colors.foreground, 0.1),
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
     borderWidth: borders.hairline,
-    borderColor: withAlpha(colors.primary, 0.2),
+    borderColor: withAlpha(colors.foreground, 0.2),
   },
   avatarImage: { width: 72, height: 72 },
   avatarText: {
     fontFamily: fonts.sansSemi,
-    color: colors.primary,
+    color: colors.foreground,
     fontSize: typeScale.display2xl.fontSize - 2,
     lineHeight: typeScale.display2xl.lineHeight - 2,
   },

@@ -27,7 +27,7 @@ export function VisionAddTile({ onPress, uploading, disabled, tileWidth }: Props
       style={[
         styles.cell,
         { width: tileWidth, height: tileWidth },
-        disabled && styles.disabled,
+        (disabled || uploading) && styles.disabled,
       ]}
       onPress={onPress}
       disabled={disabled || uploading}
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     borderRadius: radius["2xl"],
     borderWidth: borders.thick,
     borderStyle: "dashed",
-    borderColor: withAlpha(colors.destructive, 0.5),
+    borderColor: withAlpha(colors.primary, 0.5),
     overflow: "hidden",
   },
   disabled: { opacity: opacity.disabledSoft },

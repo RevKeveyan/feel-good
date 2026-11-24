@@ -1,0 +1,32 @@
+$ErrorActionPreference = "Stop"
+Add-Type -TypeDefinition @"
+using System; using System.Runtime.InteropServices; using System.Text;
+public class SupabaseCliCredFixReview {
+  [DllImport("advapi32.dll", SetLastError=true, CharSet=CharSet.Unicode)]
+  public static extern bool CredRead(string target, int type, int reservedFlag, out IntPtr credentialPtr);
+  [DllImport("advapi32.dll", SetLastError=true)]
+  public static extern bool CredFree(IntPtr cred);
+  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
+  public struct CREDENTIAL {
+    public int Flags; public int Type; public IntPtr TargetName; public IntPtr Comment;
+    public System.Runtime.InteropServices.ComTypes.FILETIME LastWritten;
+    public int CredentialBlobSize; public IntPtr CredentialBlob; public int Persist;
+    public int AttributeCount; public IntPtr Attributes; public IntPtr TargetAlias; public IntPtr UserName;
+  }
+  public static string Read(string target) {
+    IntPtr p; if (!CredRead(target, 1, 0, out p)) return "";
+    try {
+      var c = (CREDENTIAL)Marshal.PtrToStructure(p, typeof(CREDENTIAL));
+      byte[] b = new byte[c.CredentialBlobSize];
+      Marshal.Copy(c.CredentialBlob, b, 0, c.CredentialBlobSize);
+      return Encoding.UTF8.GetString(b);
+    } finally { CredFree(p); }
+  }
+}
+"@
+$env:SUPABASE_ACCESS_TOKEN = [SupabaseCliCredFixReview]::Read("Supabase CLI:supabase")
+Set-Location (Split-Path -Parent $PSScriptRoot)
+& npm.cmd exec --yes -- tsx (Join-Path $PSScriptRoot "fix-review-access.mjs")
+$code = $LASTEXITCODE
+Remove-Item Env:SUPABASE_ACCESS_TOKEN -ErrorAction SilentlyContinue
+exit $code

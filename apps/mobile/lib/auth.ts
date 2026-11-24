@@ -120,6 +120,31 @@ export function isEmailNotConfirmedError(e: unknown): e is EmailNotConfirmedErro
   );
 }
 
+export class EmailAlreadyRegisteredError extends Error {
+  readonly code = "email_already_registered" as const;
+  constructor() {
+    super("An account with this email already exists. Sign in instead.");
+    this.name = "EmailAlreadyRegisteredError";
+  }
+}
+
+function isAlreadyRegisteredMessage(message: string) {
+  const msg = message.toLowerCase();
+  return (
+    msg.includes("already registered") ||
+    msg.includes("already been registered") ||
+    msg.includes("already exists") ||
+    msg.includes("user already")
+  );
+}
+
+export function isEmailAlreadyRegisteredError(e: unknown): e is EmailAlreadyRegisteredError {
+  if (e instanceof EmailAlreadyRegisteredError) return true;
+  if (!(e instanceof Error)) return false;
+  if ("code" in e && (e as { code?: string }).code === "email_already_registered") return true;
+  return isAlreadyRegisteredMessage(e.message);
+}
+
 export async function signInWithEmail(email: string, password: string) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
@@ -137,7 +162,15 @@ export async function signUpWithEmail(email: string, password: string, displayNa
     password,
     options: { data: { display_name: displayName } },
   });
-  if (error) throw error;
+  if (error) {
+    if (isAlreadyRegisteredMessage(error.message)) {
+      throw new EmailAlreadyRegisteredError();
+    }
+    throw error;
+  }
+  if (data.user && !data.session && (data.user.identities?.length ?? 0) === 0) {
+    throw new EmailAlreadyRegisteredError();
+  }
   return { hasSession: Boolean(data.session) };
 }
 

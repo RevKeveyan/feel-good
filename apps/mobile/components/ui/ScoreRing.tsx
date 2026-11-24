@@ -26,9 +26,8 @@ export function ScoreRing({ score, max = 100, habits, checkInDone, remaining }: 
         <Svg width={RING_SIZE} height={RING_SIZE} viewBox="0 0 36 36" style={styles.svg}>
           <Defs>
             <SvgGradient id="scoreGrad" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0%" stopColor={colors.lime} />
-              <Stop offset="60%" stopColor={colors.accent} />
-              <Stop offset="100%" stopColor={colors.destructive} />
+              <Stop offset="0%" stopColor={colors.primary} />
+              <Stop offset="100%" stopColor={colors.secondary} />
             </SvgGradient>
           </Defs>
           <Path
@@ -65,7 +64,12 @@ export function ScoreRing({ score, max = 100, habits, checkInDone, remaining }: 
       <View style={styles.meta}>
         <MetaItem label="Habits" value={`${habits} / 5`} />
         <View style={styles.divider} />
-        <MetaItem label="Check-in" value={checkInDone ? "Done" : "Required"} muted={!checkInDone} />
+        <MetaItem
+          label="Check-in"
+          value={checkInDone ? "Done" : "Required"}
+          muted={!checkInDone}
+          accent={checkInDone}
+        />
         <View style={styles.divider} />
         <MetaItem label="Remaining" value={`${remaining} days`} accent />
       </View>
@@ -99,12 +103,13 @@ function MetaItem({
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: "center", width: "100%" },
+  wrap: { alignItems: "center", width: "100%", alignSelf: "stretch" },
   ringBox: {
     width: RING_SIZE,
     height: RING_SIZE,
     alignItems: "center",
     justifyContent: "center",
+    alignSelf: "center",
   },
   svg: { position: "absolute" },
   center: { alignItems: "center" },
@@ -117,21 +122,25 @@ const styles = StyleSheet.create({
   },
   completeText: {
     color: colors.primary,
+    fontFamily: fonts.sansSemi,
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
   meta: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: space["2xl"],
+    width: "100%",
     marginTop: space.p6,
+    paddingHorizontal: space.sm,
   },
-  metaItem: { alignItems: "center", minWidth: 0 },
+  metaItem: { flex: 1, alignItems: "center", minWidth: 0 },
   divider: {
     width: 1,
     height: space["2xl"],
     backgroundColor: colors.border,
+    flexShrink: 0,
   },
-  metaKicker: { letterSpacing: 0 },
+  metaKicker: { letterSpacing: 0, textAlign: "center" },
   metaValue: {
     marginTop: 2,
     fontFamily: fonts.sansSemi,

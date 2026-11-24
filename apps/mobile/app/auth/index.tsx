@@ -8,7 +8,7 @@ import {
   StyleSheet,
   TextInput,
   View,
-  type TextInput as TextInputType,
+  type TextInputInstance,
 } from "react-native";
 import { Redirect, router } from "expo-router";
 import { supabase } from "@/lib/supabase";
@@ -17,6 +17,7 @@ import {
   GOOGLE_SIGN_IN_ENABLED,
   getLastOAuthRedirectParam,
   getOAuthRedirectTo,
+  isEmailAlreadyRegisteredError,
   isEmailNotConfirmedError,
   isPasswordRecoveryPending,
   markPasswordRecoveryPending,
@@ -37,10 +38,9 @@ import {
   Label,
   OutlineButton,
   PrimaryButton,
-  SoftOrbs,
 } from "@/components/ui";
 import { KeyboardScreen } from "@/components/KeyboardScreen";
-import { borders, colors, fonts, radius, space, typeScale } from "@/src/theme";
+import { borders, colors, fonts, radius, space, typeScale, withAlpha } from "@/src/theme";
 
 type AuthMode = "signin" | "signup" | "forgot" | "confirm";
 
@@ -53,9 +53,10 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [session, setSession] = useState<boolean | null>(null);
   const [passwordRecovery, setPasswordRecovery] = useState(false);
-  const emailRef = useRef<TextInputType>(null);
-  const passwordRef = useRef<TextInputType>(null);
-  const confirmCodeRef = useRef<TextInputType>(null);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const emailRef = useRef<TextInputInstance>(null);
+  const passwordRef = useRef<TextInputInstance>(null);
+  const confirmCodeRef = useRef<TextInputInstance>(null);
 
   useEffect(() => {
     void supabase.auth
@@ -104,7 +105,7 @@ export default function AuthScreen() {
     );
   }
   if (session && mode !== "forgot" && mode !== "confirm") {
-    return <Redirect href="/(app)/overview" />;
+    return <Redirect href="/(app)/choose" />;
   }
 
   async function handleEmail() {
@@ -130,21 +131,32 @@ export default function AuthScreen() {
         const { hasSession } = await signUpWithEmail(email.trim(), password, name.trim());
         if (hasSession) {
           trackEvent("auth_sign_in", { method: "email_signup" });
-          router.replace("/(app)/overview");
+          router.replace("/(app)/choose");
           return;
         }
         setConfirmCode("");
         setMode("confirm");
         Alert.alert(
           "Check your inbox",
-          "We sent a one-time code. Enter it below to confirm your email, or try signing in if you already verified.",
+          "We sent a one-time code. Enter it next to confirm your email, or try signing in if your already verified.",
         );
         return;
       }
       await signInWithEmail(email.trim(), password);
       trackEvent("auth_sign_in", { method: "email" });
-      router.replace("/(app)/overview");
+      router.replace("/(app)/choose");
     } catch (e) {
+      if (mode === "signup" && isEmailAlreadyRegisteredError(e)) {
+        Alert.alert(
+          "Email already in use",
+          "An account with this email already exists. Sign in, or reset your password if you forgot it.",
+          [
+            { text: "Forgot password", onPress: () => setMode("forgot") },
+            { text: "Sign in", onPress: () => setMode("signin") },
+          ],
+        );
+        return;
+      }
       if (mode === "signin" && isEmailNotConfirmedError(e)) {
         setConfirmCode("");
         setMode("confirm");
@@ -175,7 +187,7 @@ export default function AuthScreen() {
     try {
       await verifySignupOtp(trimmedEmail, trimmedCode);
       trackEvent("auth_sign_in", { method: "email_confirm" });
-      router.replace("/(app)/overview");
+      router.replace("/(app)/choose");
     } catch (e) {
       Alert.alert("Invalid code", e instanceof Error ? e.message : "Could not verify code");
     } finally {
@@ -205,7 +217,7 @@ export default function AuthScreen() {
     try {
       await signInWithGoogle();
       trackEvent("auth_sign_in", { method: "google" });
-      router.replace("/(app)/overview");
+      router.replace("/(app)/choose");
     } catch (e) {
       const message = e instanceof Error ? e.message : "Google sign in failed";
       const redirectTo = getOAuthRedirectTo();
@@ -244,7 +256,7 @@ export default function AuthScreen() {
     try {
       await signInWithApple();
       trackEvent("auth_sign_in", { method: "apple" });
-      router.replace("/(app)/overview");
+      router.replace("/(app)/choose");
     } catch (e) {
       Alert.alert("Error", e instanceof Error ? e.message : "Apple sign in failed");
     } finally {
@@ -279,11 +291,7 @@ export default function AuthScreen() {
           : "Create account";
 
   return (
-    <KeyboardScreen
-      style={styles.container}
-      contentContainerStyle={styles.scrollInner}
-      background={<SoftOrbs />}
-    >
+    <KeyboardScreen style={styles.container} contentContainerStyle={styles.scrollInner}>
       <View style={styles.content}>
         <BrandWordmark size="md" />
         <View style={styles.headingBlock}>
@@ -322,7 +330,7 @@ export default function AuthScreen() {
 
         {mode === "signup" && (
           <TextInput
-            style={styles.input}
+            style={[styles.input, focusedField === "name" && styles.inputFocused]}
             placeholder="Your name"
             placeholderTextColor={colors.mutedForeground}
             value={name}
@@ -330,12 +338,14 @@ export default function AuthScreen() {
             autoCapitalize="words"
             returnKeyType="next"
             blurOnSubmit={false}
+            onFocus={() => setFocusedField("name")}
+            onBlur={() => setFocusedField(null)}
             onSubmitEditing={() => emailRef.current?.focus()}
           />
         )}
         <TextInput
           ref={emailRef}
-          style={styles.input}
+          style={[styles.input, focusedField === "email" && styles.inputFocused]}
           placeholder="Email"
           placeholderTextColor={colors.mutedForeground}
           value={email}
@@ -345,6 +355,8 @@ export default function AuthScreen() {
           editable={mode !== "confirm" || !email}
           returnKeyType={mode === "forgot" ? "done" : mode === "confirm" ? "next" : "next"}
           blurOnSubmit={mode === "forgot"}
+          onFocus={() => setFocusedField("email")}
+          onBlur={() => setFocusedField(null)}
           onSubmitEditing={() => {
             if (mode === "forgot") {
               void handleEmail();
@@ -360,25 +372,29 @@ export default function AuthScreen() {
         {mode === "confirm" && (
           <TextInput
             ref={confirmCodeRef}
-            style={styles.input}
+            style={[styles.input, focusedField === "confirmCode" && styles.inputFocused]}
             placeholder="One-time code"
             placeholderTextColor={colors.mutedForeground}
             value={confirmCode}
             onChangeText={setConfirmCode}
             autoCapitalize="none"
             keyboardType="number-pad"
+            onFocus={() => setFocusedField("confirmCode")}
+            onBlur={() => setFocusedField(null)}
           />
         )}
         {mode !== "forgot" && mode !== "confirm" && (
           <TextInput
             ref={passwordRef}
-            style={styles.input}
+            style={[styles.input, focusedField === "password" && styles.inputFocused]}
             placeholder="Password"
             placeholderTextColor={colors.mutedForeground}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
             returnKeyType="done"
+            onFocus={() => setFocusedField("password")}
+            onBlur={() => setFocusedField(null)}
             onSubmitEditing={handleEmail}
           />
         )}
@@ -404,7 +420,7 @@ export default function AuthScreen() {
               label="Confirm email"
               onPress={handleConfirmCode}
               loading={loading}
-              style={{ marginTop: 8 }}
+              style={{ marginTop: space.sm }}
             />
             <Pressable onPress={handleResendConfirm} disabled={loading}>
               <Body size="sm" style={styles.switchText}>
@@ -417,7 +433,7 @@ export default function AuthScreen() {
             label={primaryLabel}
             onPress={handleEmail}
             loading={loading}
-            style={{ marginTop: 8 }}
+            style={{ marginTop: space.sm }}
           />
         )}
 
@@ -502,6 +518,10 @@ const styles = StyleSheet.create({
     fontSize: typeScale.input.fontSize,
     lineHeight: typeScale.input.lineHeight,
   },
+  inputFocused: {
+    borderWidth: 2,
+    borderColor: withAlpha(colors.primary, 0.4),
+  },
   forgotWrap: { alignSelf: "flex-end", marginBottom: space.xs, marginTop: -4 },
   ageNotice: {
     color: colors.mutedForeground,
@@ -509,7 +529,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   forgotLink: {
-    color: colors.mutedForeground,
+    color: colors.primary,
     textDecorationLine: "underline",
   },
   divider: {
@@ -522,6 +542,7 @@ const styles = StyleSheet.create({
   or: { letterSpacing: typeScale.kicker.letterSpacing },
   switchText: { textAlign: "center", marginTop: space.p6 },
   switchLink: {
+    color: colors.primary,
     textDecorationLine: "underline",
     fontSize: typeScale.bodySm.fontSize,
     lineHeight: typeScale.bodySm.lineHeight,

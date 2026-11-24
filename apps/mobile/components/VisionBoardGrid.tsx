@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Image, Pressable, StyleSheet, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { supabase } from "@/lib/supabase";
 import { alertMediaPermissionNeeded } from "@/lib/media-permissions";
 import { cacheBustUrl, formatUploadError, uploadLocalImage } from "@/lib/upload-image";
@@ -13,7 +14,8 @@ import {
   iconSizes,
   radius,
   space,
-  visionRingColors,
+  visionFrameGradients,
+  withAlpha,
 } from "@/src/theme";
 
 type VisionItem = { id: string; storage_path: string; url: string };
@@ -164,30 +166,39 @@ export function VisionBoardGrid({ userId, contentWidth }: Props) {
   return (
     <View>
       <View style={styles.grid}>
-        {items.map((item, i) => (
-          <View
-            key={item.id}
-            style={[
-              styles.cell,
-              {
-                width: tileWidth,
-                height: tileWidth,
-                borderColor: visionRingColors[i % visionRingColors.length],
-              },
-            ]}
-          >
-            <Pressable
-              style={StyleSheet.absoluteFill}
-              disabled={uploading}
-              onPress={() => void replaceItem(item)}
+        {items.map((item, i) => {
+          const frame = visionFrameGradients[i % visionFrameGradients.length];
+          return (
+            <View
+              key={item.id}
+              style={[
+                styles.cell,
+                {
+                  width: tileWidth,
+                  height: tileWidth,
+                  borderColor: withAlpha(colors.white, 0.6),
+                },
+              ]}
             >
-              <Image source={{ uri: item.url }} style={styles.image} resizeMode="cover" />
-            </Pressable>
-            <Pressable style={styles.remove} onPress={() => void removeItem(item)}>
-              <Trash2 size={iconSizes.sm} color={colors.white} strokeWidth={2} />
-            </Pressable>
-          </View>
-        ))}
+              <LinearGradient
+                colors={[...frame]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <Pressable
+                style={StyleSheet.absoluteFill}
+                disabled={uploading}
+                onPress={() => void replaceItem(item)}
+              >
+                <Image source={{ uri: item.url }} style={styles.image} resizeMode="cover" />
+              </Pressable>
+              <Pressable style={styles.remove} onPress={() => void removeItem(item)}>
+                <Trash2 size={iconSizes.sm} color={colors.primaryForeground} strokeWidth={2} />
+              </Pressable>
+            </View>
+          );
+        })}
         {items.length < VISION_LIMIT && (
           <VisionAddTile
             onPress={() => void addItem()}
@@ -223,7 +234,6 @@ const styles = StyleSheet.create({
     borderRadius: radius["2xl"],
     borderWidth: borders.thick,
     overflow: "hidden",
-    backgroundColor: colors.muted,
   },
   image: { width: "100%", height: "100%" },
   remove: {
@@ -233,7 +243,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: radius.full,
-    backgroundColor: colors.scrim,
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },

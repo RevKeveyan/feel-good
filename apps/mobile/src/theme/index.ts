@@ -14,6 +14,7 @@ export { fonts, displaySizes, bodySizes, typeScale, typographyRoles, webText } f
 export {
   gradients,
   visionRingColors,
+  visionFrameGradients,
   backgroundGlow,
   boostedOpacity,
   type OrbFalloff,

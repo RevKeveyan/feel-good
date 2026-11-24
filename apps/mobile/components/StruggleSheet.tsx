@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Alert, Modal, Pressable, StyleSheet, View, Linking } from "react-native";
+import { Alert, Modal, Pressable, StyleSheet, Text, View, Linking } from "react-native";
 import { STRUGGLE_QUOTES, STRUGGLE_REFRAMES, pickRandom, CONTACT_EMAIL, todayISO, type StruggleAction } from "@feelgood/shared";
 import { supabase } from "@/lib/supabase";
 import { Body, DisplayTitle, Label } from "@/components/ui";
-import { borders, colors, radius, space } from "@/src/theme";
+import { X } from "@/components/ui/icons";
+import { borders, colors, iconSizes, radius, space, withAlpha } from "@/src/theme";
 
 type ViewState =
   | { kind: "menu" }
@@ -74,9 +75,14 @@ export function StruggleSheet({ visible, onClose }: { visible: boolean; onClose:
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.sheet}>
-          <DisplayTitle size="sm" style={{ marginBottom: 12 }}>
-            Hard day?
-          </DisplayTitle>
+          <View style={styles.header}>
+            <DisplayTitle size="sm" style={styles.title}>
+              Hard day?
+            </DisplayTitle>
+            <Pressable style={styles.close} onPress={onClose} accessibilityLabel="Close">
+              <X size={iconSizes.sm} color={colors.mutedForeground} strokeWidth={2} />
+            </Pressable>
+          </View>
           {view.kind === "menu" &&
             ACTIONS.map((a) => (
               <Pressable key={a.action} style={styles.option} onPress={() => void handle(a.action)}>
@@ -109,12 +115,27 @@ export function StruggleSheet({ visible, onClose }: { visible: boolean; onClose:
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: "flex-end" },
+  overlay: { flex: 1, backgroundColor: withAlpha(colors.pureBlack, 0.4), justifyContent: "flex-end" },
   sheet: {
     backgroundColor: colors.background,
     borderTopLeftRadius: radius["3xl"],
     borderTopRightRadius: radius["3xl"],
     padding: space.p6,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: space.md,
+  },
+  title: { flex: 1 },
+  close: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.full,
+    backgroundColor: colors.muted,
+    alignItems: "center",
+    justifyContent: "center",
   },
   option: {
     paddingVertical: space.p4,

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Check, Lock } from "@/components/ui/icons";
+import { Check, ClipboardCheck, Lock, Minus } from "@/components/ui/icons";
 import {
   CHALLENGE_LENGTH,
   dayAvailability,
@@ -8,7 +8,7 @@ import {
   type DayAvailability,
   type Profile,
 } from "@feelgood/shared";
-import { Kicker, Label } from "@/components/ui";
+import { Body, Kicker, Label, StatValue } from "@/components/ui";
 import { borders, colors, fonts, radius, space, typeScale, withAlpha } from "@/src/theme";
 
 const DAYS = Array.from({ length: CHALLENGE_LENGTH }, (_, i) => i + 1);
@@ -27,15 +27,21 @@ export function ChallengeStats({ streak, completed }: StatsProps) {
     <View style={styles.stats}>
       <View style={styles.stat}>
         <Kicker>Streak</Kicker>
-        <Label style={styles.statValue}>
-          {streak} {streak === 1 ? "day" : "days"}
-        </Label>
+        <View style={styles.statRow}>
+          <StatValue size="md">{streak}</StatValue>
+          <Body size="md" style={styles.statUnit}>
+            {streak === 1 ? "day" : "days"}
+          </Body>
+        </View>
       </View>
       <View style={styles.stat}>
         <Kicker>Complete</Kicker>
-        <Label style={styles.statValue}>
-          {completed} of {CHALLENGE_LENGTH}
-        </Label>
+        <View style={styles.statRow}>
+          <StatValue size="md">{completed}</StatValue>
+          <Body size="md" style={styles.statUnit}>
+            of {CHALLENGE_LENGTH}
+          </Body>
+        </View>
       </View>
     </View>
   );
@@ -46,9 +52,16 @@ type GridProps = {
   entries: DailyEntry[];
   currentDay: number;
   onPressDay: (day: number, status: DayAvailability) => void;
+  onPressFinalCheckIn?: () => void;
 };
 
-export function ChallengeGrid({ profile, entries, currentDay, onPressDay }: GridProps) {
+export function ChallengeGrid({
+  profile,
+  entries,
+  currentDay,
+  onPressDay,
+  onPressFinalCheckIn,
+}: GridProps) {
   const statuses = useMemo(
     () =>
       DAYS.map((n) =>
@@ -60,6 +73,8 @@ export function ChallengeGrid({ profile, entries, currentDay, onPressDay }: Grid
       ),
     [profile, entries, currentDay],
   );
+
+  const finalUnlocked = currentDay >= CHALLENGE_LENGTH;
 
   return (
     <>
@@ -77,9 +92,15 @@ export function ChallengeGrid({ profile, entries, currentDay, onPressDay }: Grid
                   accessibilityLabel={labelForStatus(n, status)}
                 >
                   {status === "past_complete" ? (
-                    <Check size={14} color={colors.primaryForeground} strokeWidth={2.5} />
+                    <Check size={16} color={colors.primaryForeground} strokeWidth={2} />
                   ) : status === "future" ? (
-                    <Lock size={12} color={colors.mutedForeground} strokeWidth={2} />
+                    <Lock
+                      size={14}
+                      color={withAlpha(colors.mutedForeground, 0.6)}
+                      strokeWidth={2}
+                    />
+                  ) : status === "past_incomplete" || status === "past_empty" ? (
+                    <Minus size={16} color={colors.mutedForeground} strokeWidth={2} />
                   ) : (
                     <Label style={[styles.cellNum, status === "today" && styles.cellNumToday]}>
                       {n}
@@ -88,11 +109,32 @@ export function ChallengeGrid({ profile, entries, currentDay, onPressDay }: Grid
                 </Pressable>
               );
             })}
-            {weekDays.length < WEEK_LENGTH
-              ? Array.from({ length: WEEK_LENGTH - weekDays.length }).map((_, i) => (
-                  <View key={`pad-${i}`} style={styles.cellPad} />
-                ))
-              : null}
+            {weekIndex === WEEKS.length - 1 && weekDays.length < WEEK_LENGTH ? (
+              <Pressable
+                onPress={() => {
+                  if (!finalUnlocked) return;
+                  onPressFinalCheckIn?.();
+                }}
+                style={[styles.cell, finalUnlocked ? styles.cellToday : styles.cellFuture]}
+                accessibilityLabel={
+                  finalUnlocked ? "Final check-in form" : "Final check-in form locked until Day 55"
+                }
+              >
+                {finalUnlocked ? (
+                  <ClipboardCheck size={16} color={colors.foreground} strokeWidth={2} />
+                ) : (
+                  <Lock
+                    size={14}
+                    color={withAlpha(colors.mutedForeground, 0.6)}
+                    strokeWidth={2}
+                  />
+                )}
+              </Pressable>
+            ) : weekDays.length < WEEK_LENGTH ? (
+              Array.from({ length: WEEK_LENGTH - weekDays.length }).map((_, i) => (
+                <View key={`pad-${i}`} style={styles.cellPad} />
+              ))
+            ) : null}
           </View>
         </View>
       ))}
@@ -107,9 +149,8 @@ function cellStyle(status: DayAvailability) {
     case "past_complete":
       return styles.cellComplete;
     case "past_incomplete":
-      return styles.cellIncomplete;
     case "past_empty":
-      return styles.cellEmpty;
+      return styles.cellMissed;
     default:
       return styles.cellFuture;
   }
@@ -135,48 +176,50 @@ const styles = StyleSheet.create({
   stat: {
     flex: 1,
     backgroundColor: colors.card,
-    borderRadius: radius["2xl"],
+    borderRadius: radius["3xl"],
     padding: space.p4,
     borderWidth: borders.hairline,
     borderColor: colors.ringHairline,
   },
-  statValue: { marginTop: 6, fontSize: typeScale.bodyLg.fontSize },
+  statRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: space.xs,
+    marginTop: 6,
+  },
+  statUnit: { color: colors.mutedForeground },
   week: { marginBottom: space.lg },
   weekLabel: { marginBottom: space.sm },
   grid: { flexDirection: "row", gap: space.sm },
   cell: {
     flex: 1,
     aspectRatio: 1,
-    borderRadius: radius.md,
+    borderRadius: radius["2xl"],
     alignItems: "center",
     justifyContent: "center",
     borderWidth: borders.hairline,
   },
   cellPad: { flex: 1, aspectRatio: 1 },
   cellToday: {
-    backgroundColor: withAlpha(colors.accent, 0.3),
-    borderColor: colors.accent,
+    backgroundColor: colors.secondary,
+    borderWidth: borders.thick,
+    borderColor: colors.primary,
   },
   cellComplete: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
-  cellIncomplete: {
+  cellMissed: {
     backgroundColor: colors.card,
-    borderColor: withAlpha(colors.destructive, 0.6),
-  },
-  cellEmpty: {
-    backgroundColor: colors.card,
-    borderColor: colors.ringPrimary,
+    borderColor: colors.border,
   },
   cellFuture: {
-    backgroundColor: colors.muted,
-    borderColor: colors.border,
-    opacity: 0.55,
+    backgroundColor: withAlpha(colors.card, 0.6),
+    borderColor: colors.ringHairline,
   },
   cellNum: {
     fontFamily: fonts.sansSemi,
-    fontSize: typeScale.bodySm.fontSize,
+    fontSize: typeScale.bodyMd.fontSize,
   },
   cellNumToday: {
     color: colors.foreground,

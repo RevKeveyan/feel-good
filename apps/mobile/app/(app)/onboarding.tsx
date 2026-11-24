@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { ArrowLeft, ArrowRight, Check, Lock, Sparkles } from "@/components/ui/icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { VisionBoardGrid } from "@/components/VisionBoardGrid";
 import {
   GOAL_OPTIONS,
@@ -59,6 +59,8 @@ import {
 } from "@/src/theme";
 
 export default function OnboardingScreen() {
+  const { edit } = useLocalSearchParams<{ edit?: string }>();
+  const editing = edit === "1";
   const [stepIndex, setStepIndex] = useState(0);
   const [uid, setUid] = useState<string | null>(null);
   const [goals, setGoals] = useState<string[]>([]);
@@ -78,8 +80,7 @@ export default function OnboardingScreen() {
 
   const otherEntry = goals.find((s) => s === "Other" || s.startsWith("Other:")) ?? null;
   const hasOther = otherEntry !== null;
-  const otherText =
-    otherEntry && otherEntry.startsWith("Other:") ? otherEntry.slice("Other:".length).trim() : "";
+  const otherText = parseOtherGoal(otherEntry);
 
   useEffect(() => {
     void load();
@@ -100,7 +101,7 @@ export default function OnboardingScreen() {
         .maybeSingle(),
     ]);
 
-    if (r?.completed_at) {
+    if (r?.completed_at && !editing) {
       router.replace("/(app)/overview");
       return;
     }
@@ -188,7 +189,8 @@ export default function OnboardingScreen() {
       }),
       supabase.from("profiles").update({ onboarding_completed_at: now }).eq("id", uid),
     ]);
-    router.replace("/(app)/overview");
+    if (editing) router.back();
+    else router.replace("/(app)/overview");
   }
 
   function canContinue(): boolean {
@@ -338,19 +340,14 @@ export default function OnboardingScreen() {
                     style={styles.goalPressable}
                   >
                     {active ? (
-                      <LinearGradient
-                        colors={[...gradients.goalActive]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={[styles.goalChip, styles.goalChipActive]}
-                      >
-                        <Label style={styles.goalText} numberOfLines={3}>
+                      <View style={[styles.goalChip, styles.goalChipActive]}>
+                        <Label style={[styles.goalText, styles.goalTextActive]} numberOfLines={3}>
                           {g}
                         </Label>
                         <View style={styles.goalCheckOn}>
-                          <Check size={10} color={colors.foreground} strokeWidth={3} />
+                          <Check size={10} color={colors.primary} strokeWidth={3} />
                         </View>
-                      </LinearGradient>
+                      </View>
                     ) : (
                       <View style={styles.goalChip}>
                         <Label style={styles.goalText} numberOfLines={3}>
@@ -364,7 +361,11 @@ export default function OnboardingScreen() {
               })}
             </View>
             {hasOther && (
-              <View style={styles.goalsOther}>
+              <GradientArea
+                colorsStops={[colors.card, withAlpha(colors.secondary, 0.3)]}
+                style={styles.goalsOther}
+                contentStyle={styles.goalsOtherInner}
+              >
                 <Kicker style={styles.goalsOtherLabel}>
                   Tell us what &quot;Other&quot; means to you
                 </Kicker>
@@ -374,9 +375,12 @@ export default function OnboardingScreen() {
                   onChangeText={setOtherText}
                   placeholder="In a few words…"
                   placeholderTextColor={withAlpha(colors.foreground, 0.3)}
-                  returnKeyType="done"
+                  multiline
+                  textAlignVertical="top"
+                  returnKeyType="default"
+                  blurOnSubmit={false}
                 />
-              </View>
+              </GradientArea>
             )}
           </View>
         )}
@@ -389,7 +393,7 @@ export default function OnboardingScreen() {
               <SoftOrb
                 size={160}
                 blur={40}
-                color={colors.accent}
+                color={colors.secondary}
                 opacity={0.4}
                 top={-64}
                 right={-64}
@@ -400,21 +404,23 @@ export default function OnboardingScreen() {
               &ldquo;I commit to showing up for myself for the next 55 days.&rdquo;
             </DisplayTitle>
             <Kicker style={styles.commitmentKicker}>Type your name to sign</Kicker>
-            <TextInput
-              style={styles.commitmentInput}
-              placeholder="Your name"
-              placeholderTextColor={colors.mutedForeground}
-              value={commitmentName}
-              onChangeText={setCommitmentName}
-              returnKeyType="done"
-            />
+            <View style={styles.commitmentField}>
+              <TextInput
+                style={styles.commitmentInput}
+                placeholder="Your name"
+                placeholderTextColor={colors.mutedForeground}
+                value={commitmentName}
+                onChangeText={setCommitmentName}
+                returnKeyType="done"
+              />
+            </View>
             <PrimaryButton
               label={commitmentSignedAt ? `Signed, ${commitmentName}` : "I agree"}
               onPress={signCommitment}
               disabled={commitmentDisabled}
               style={[
                 styles.commitmentAgree,
-                commitmentDisabled && { opacity: opacity.disabledSoft },
+                commitmentDisabled && styles.commitmentAgreeDisabled,
               ]}
             />
             {commitmentSignedAt ? (
@@ -434,7 +440,7 @@ export default function OnboardingScreen() {
                 <SoftOrb
                   size={224}
                   blur={64}
-                  color={colors.destructive}
+                  color={colors.primary}
                   opacity={0.25}
                   top={-64}
                   right={-64}
@@ -480,7 +486,10 @@ export default function OnboardingScreen() {
 
         {step === "letter" && (
           <>
-            <View style={styles.letterCard}>
+            <GradientArea
+              colorsStops={[colors.card, colors.background, withAlpha(colors.secondary, 0.4)]}
+              contentStyle={styles.cardPad5}
+            >
               <TextInput
                 style={styles.letterInput}
                 placeholder="Dear future me,"
@@ -491,7 +500,7 @@ export default function OnboardingScreen() {
                 multiline
                 textAlignVertical="top"
               />
-            </View>
+            </GradientArea>
             <IconLabel
               style={styles.lockNoteTight}
               gap={space.sm}
@@ -511,7 +520,7 @@ export default function OnboardingScreen() {
               <SoftOrb
                 size={224}
                 blur={64}
-                color={colors.white}
+                color={colors.card}
                 opacity={0.3}
                 top={-80}
                 right={-80}
@@ -535,17 +544,16 @@ export default function OnboardingScreen() {
         )}
 
         <View style={[styles.navRow, step === "done" && styles.navRowDone]}>
-          {stepIndex > 0 && step !== "done" ? (
+          {step !== "done" && (stepIndex > 0 || editing) ? (
             <GhostButton
               label="Back"
-              onPress={back}
+              onPress={stepIndex > 0 ? back : () => router.back()}
+              style={styles.backBtn}
               leadingIcon={
                 <ArrowLeft size={iconSizes.sm} color={colors.foreground70} strokeWidth={2} />
               }
             />
-          ) : (
-            <View />
-          )}
+          ) : null}
           <PrimaryButton
             label={ctaLabel}
             onPress={next}
@@ -571,6 +579,13 @@ export default function OnboardingScreen() {
       {scrollBody}
     </View>
   );
+}
+
+function parseOtherGoal(entry: string | null): string {
+  if (!entry || entry === "Other") return "";
+  if (entry.startsWith("Other: ")) return entry.slice("Other: ".length);
+  if (entry.startsWith("Other:")) return entry.slice("Other:".length);
+  return "";
 }
 
 function stepEyebrow(step: OnboardingStep) {
@@ -610,7 +625,7 @@ function stepSubtitle(step: OnboardingStep): string | null {
     why: "Short answers. First instinct is usually the truest.",
     goals: "Pick as many as feel true. We'll come back to these on Day 55.",
     commitment: null,
-    wheel: "Rate where you are today across nine areas. You'll rate again on Day 55, this is your before.",
+    wheel: "Rate where you are today across nine areas. You'll rate again on Day 55, this is how you rate yourself right now.",
     "why-statement": "Write it once. We'll show it back to you on Day 55.",
     vision:
       "Upload up to 8 images that show what you're moving toward. Family, holiday, a dress, the version of you you're becoming. Private to you.",
@@ -652,7 +667,7 @@ const styles = StyleSheet.create({
   },
   progressFill: { flex: 1, height: "100%" },
   stepEyebrow: {
-    color: colors.foreground,
+    color: colors.primary,
     marginBottom: space.md,
   },
   title: {
@@ -692,7 +707,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   goalChipActive: {
-    borderColor: withAlpha(colors.lime, 0.6),
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
     ...shadows.card,
   },
   goalText: {
@@ -703,11 +719,14 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontFamily: fonts.sansMedium,
   },
+  goalTextActive: {
+    color: colors.primaryForeground,
+  },
   goalCheckOff: {
     width: 20,
     height: 20,
     borderRadius: radius.full,
-    backgroundColor: colors.muted,
+    backgroundColor: colors.background,
     borderWidth: borders.hairline,
     borderColor: colors.border,
     flexShrink: 0,
@@ -716,18 +735,20 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: radius.full,
-    backgroundColor: withAlpha(colors.white, 0.6),
+    backgroundColor: colors.card,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
-  goalsOther: { marginTop: space.lg },
+  goalsOther: { marginTop: space.lg, borderRadius: radius["2xl"] },
+  goalsOtherInner: { padding: space.lg },
   goalsOtherLabel: {
     marginBottom: space.sm,
     color: colors.mutedForeground,
   },
   goalsOtherInput: {
-    backgroundColor: colors.card,
+    minHeight: 96,
+    backgroundColor: withAlpha(colors.card, 0.6),
     borderRadius: radius["2xl"],
     borderWidth: borders.hairline,
     borderColor: colors.ringHairline,
@@ -748,22 +769,31 @@ const styles = StyleSheet.create({
     marginBottom: space.sm,
     color: colors.mutedForeground,
   },
-  commitmentInput: {
-    backgroundColor: colors.background,
+  commitmentField: {
+    backgroundColor: withAlpha(colors.card, 0.7),
     borderRadius: radius["2xl"],
     borderBottomWidth: borders.thick,
-    borderBottomColor: withAlpha(colors.primary, 0.3),
+    borderBottomColor: withAlpha(colors.primary, 0.4),
     paddingHorizontal: space.inputX,
     paddingVertical: space.md,
+    justifyContent: "center",
+  },
+  commitmentInput: {
     fontFamily: fonts.display,
     fontStyle: "italic",
     fontSize: typeScale.displayLg.fontSize,
-    lineHeight: typeScale.displayLg.lineHeight,
     color: colors.foreground,
+    padding: 0,
+    margin: 0,
   },
   commitmentAgree: {
     marginTop: space.xl,
     paddingVertical: space.md,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  commitmentAgreeDisabled: {
+    opacity: opacity.disabledSoft,
   },
   signedAt: {
     marginTop: space.md,
@@ -781,13 +811,6 @@ const styles = StyleSheet.create({
     lineHeight: typeScale.bodyBase.lineHeight,
     color: colors.foreground,
     padding: 0,
-  },
-  letterCard: {
-    backgroundColor: colors.card,
-    borderRadius: radius["3xl"],
-    padding: space.p5,
-    borderWidth: borders.hairline,
-    borderColor: colors.ringHairline,
   },
   letterInput: {
     minHeight: 200,
@@ -819,6 +842,7 @@ const styles = StyleSheet.create({
     marginTop: layout.screenPadTop,
   },
   navRowDone: { marginTop: space["2xl"] },
+  backBtn: { gap: space.xs },
   nextCta: { paddingVertical: 14 },
   doneCta: { flex: 1, paddingVertical: space.lg },
 });

@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">= 12.0.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
@@ -19,8 +19,14 @@
     },
     "production": {
       "autoIncrement": true,
+      "environment": "production",
+      "ios": {
+        "image": "latest"
+      },
       "env": {
-        "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://bruvmdcstlkszvjruska.supabase.co",
+        "EXPO_PUBLIC_MINDSET_AUDIO_BASE_URL": "https://bruvmdcstlkszvjruska.supabase.co/storage/v1/object/public/mindset-audio"
       }
     }
   },
